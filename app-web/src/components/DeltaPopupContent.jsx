@@ -38,14 +38,22 @@ export default function DeltaPopupContent({ p, metric, color, selectedDeltaMetri
       <PopupRow label="Tipo de eleicao" value={p.tipo_par || electionPairLabel(p.ano_inicio, p.ano_fim)} />
       <PopupRow label={`Delta ${metric.label}`} value={primaryValue} color={p[metric.field] == null ? undefined : color} />
       <PopupRow label="Hugo" value={candidateSummary(p.votos_hugo_inicio, p.votos_hugo_fim, p.delta_hugo, p.candidacy_status_hugo, p.cargo_diferente_hugo)} />
-      <PopupRow label="Secoes" value={`${p.secoes_inicio || 0} -> ${p.secoes_fim || 0}`} />
-      <PopupRow label="Troca de secoes" value={formatPct((Number(p.secao_churn) || 0) * 100)} />
-      {moved > 0 && <PopupRow label="Secoes com troca" value={`+${p.secoes_movidas_in || 0} / -${p.secoes_movidas_out || 0}`} />}
-      {competitorLayer && (
+      {competitorLayer && (startFeat?.properties?.top1_nome || endFeat?.properties?.top1_nome) && (
         <>
           <CompetitorSection title={`Concorrencia ${p.ano_inicio}`} props={startFeat ? startFeat.properties : {}} />
           <CompetitorSection title={`Concorrencia ${p.ano_fim}`} props={endFeat ? endFeat.properties : {}} />
         </>
+      )}
+      {/* Section-churn fields (secoes_inicio/fim, secao_churn, secoes_movidas)
+          are diagnostic — useful to a data analyst, cryptic to a map reader.
+          Collapsed under a details block so the common case stays clean. */}
+      {(Number(p.secoes_inicio) || Number(p.secoes_fim)) && (
+        <details className="popup-competitors">
+          <summary>Detalhes de secoes</summary>
+          <PopupRow label="Secoes" value={`${p.secoes_inicio || 0} -> ${p.secoes_fim || 0}`} />
+          <PopupRow label="Troca de secoes" value={formatPct((Number(p.secao_churn) || 0) * 100)} />
+          {moved > 0 && <PopupRow label="Secoes com troca" value={`+${p.secoes_movidas_in || 0} / -${p.secoes_movidas_out || 0}`} />}
+        </details>
       )}
     </div>
   );
