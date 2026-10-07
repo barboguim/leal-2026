@@ -26,6 +26,10 @@ export default function IntensityLegend({ year }) {
             <span className="intensity-range">{CLASS_LABELS[i]}</span>
           </li>
         ))}
+        <li className="intensity-class">
+          <span className="intensity-swatch zero-swatch" />
+          <span className="intensity-range">sem votos de Hugo</span>
+        </li>
       </ul>
     </div>
   );

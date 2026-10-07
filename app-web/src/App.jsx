@@ -92,12 +92,9 @@ export default function App() {
   // --- Markers (Ano a ano) --------------------------------------------------
   // share_pct = this local's QT_VOTOS / max QT_VOTOS across Hugo's locais
   // that year. "Relative intensity": the strongest local that year reads as
-  // 100 %, everyone else is a share of it. Picked over absolute Hugo-share
-  // because the absolute metric produces values in the 0 – 5 % range, which
-  // doesn't feel like 'intensity'. Relative gives a natural 0 – 100 % scale,
-  // intuitive bins (0-20, 20-40, …) and recolors each year on its own terms
-  // (Hugo's strongest 2010 local vs. his strongest 2026 local are both the
-  // top of their own cycle, which is what a map viewer intuits).
+  // 100 %, everyone else is a share of it. Each year rescales to its own
+  // strongest, so colors stay meaningful across cycles even as Hugo's base
+  // total shifts.
   const hugoFC = data[HUGO];
   const yearFeats = (selectedYear ? hugoFC.features.filter(f => f.properties.ano === selectedYear) : hugoFC.features);
   const localPoints = selectedYear ? yearFeats : aggregateByLocal(yearFeats);
@@ -106,13 +103,45 @@ export default function App() {
   const featuresWithShare = localPoints.map(f => {
     const votos = Number(f.properties.QT_VOTOS || 0);
     const intensity_pct = yearMax > 0 ? (votos / yearMax) * 100 : 0;
-    // share_pct kept for the popup (absolute "% of Hugo's total votes" is
-    // still a useful figure once the user is looking at a specific local).
     const share_pct = yearTotal > 0 ? (votos / yearTotal) * 100 : 0;
     return { ...f, properties: { ...f.properties, share_pct, intensity_pct } };
   });
-  // Five equal 20-point bins cover the full 0 – 100 scale cleanly.
   const breaks = [20, 40, 60, 80];
+
+  // Zero-vote locais: every local that has shown up in ANY Hugo cycle, but
+  // not in the selected year. Rendered as hollow dots so the user sees the
+  // full roster of polling places and the Hugo-free ones read as 'quiet'.
+  // Coord taken from the first year the local appeared in (coords are static
+  // in locais_votacao_niteroi.csv; same across cycles for a given local).
+  const allKnownLocais = useMemo(() => {
+    const m = new Map();
+    for (const f of hugoFC.features) {
+      const nr = f.properties.nr_local;
+      if (!m.has(nr)) m.set(nr, f);
+    }
+    return m;
+  }, [hugoFC]);
+
+  const presentLocais = new Set(localPoints.map(f => f.properties.nr_local));
+  const zeroFeatures = [];
+  if (selectedYear) {
+    for (const [nr, template] of allKnownLocais) {
+      if (presentLocais.has(nr)) continue;
+      zeroFeatures.push({
+        ...template,
+        properties: {
+          ...template.properties,
+          ano: selectedYear,
+          QT_VOTOS: 0,
+          n_secoes: 0,
+          share_pct: 0,
+          intensity_pct: 0,
+          is_zero: true,
+        },
+      });
+    }
+  }
+  const allMarkerFeatures = [...featuresWithShare, ...zeroFeatures];
 
   // Per-year local-set status — tells the user how the locais set changed
   // between the previous Geral cycle and the one in view. Powers the small
@@ -162,7 +191,7 @@ export default function App() {
         {showYears && (
           <MarkerLayer
             layerKey={HUGO}
-            features={featuresWithShare}
+            features={allMarkerFeatures}
             breaks={breaks}
             onSelect={(p, coords) => setCompareSelection({ props: p, coords })}
           />

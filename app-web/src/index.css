@@ -522,3 +522,10 @@ details.group.is-hidden .group-row .group-count { color: var(--color-text-faint)
   font-variant-numeric: tabular-nums;
 }
 .status-caption-sub { color: var(--color-text-muted); }
+
+/* Zero-vote swatch in the intensity legend: hollow look matching the map
+   dot for a local with no Hugo votes that year. */
+.intensity-swatch.zero-swatch {
+  background: #ffffff;
+  border: 1px solid #a59f97;
+}
