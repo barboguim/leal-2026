@@ -30,6 +30,57 @@ function localStatusLabel(status, anoInicio, anoFim) {
   return `Local ativo em ${anoInicio} e ${anoFim}`;
 }
 
+// Collapse a sorted list of secao numbers into run-length ranges for display:
+// ["1","2","3","7","9","10"] -> "1–3, 7, 9–10". Matches mobi-pleito-2026's
+// collapse_ranges util. Operates on strings because leading zeros matter in
+// TSE's secao numbering (we preserve them verbatim).
+function collapseRanges(sections) {
+  if (!sections || sections.length === 0) return '';
+  const nums = sections.map(s => ({ raw: s, n: parseInt(s, 10) })).filter(x => Number.isFinite(x.n));
+  if (nums.length === 0) return sections.join(', ');
+  nums.sort((a, b) => a.n - b.n);
+  const parts = [];
+  let runStart = nums[0];
+  let prev = nums[0];
+  for (let i = 1; i < nums.length; i++) {
+    const cur = nums[i];
+    if (cur.n === prev.n + 1) { prev = cur; continue; }
+    parts.push(runStart.raw === prev.raw ? runStart.raw : `${runStart.raw}–${prev.raw}`);
+    runStart = cur;
+    prev = cur;
+  }
+  parts.push(runStart.raw === prev.raw ? runStart.raw : `${runStart.raw}–${prev.raw}`);
+  return parts.join(', ');
+}
+
+function parseLineage(json) {
+  if (!json) return [];
+  try { return JSON.parse(json); } catch { return []; }
+}
+
+function LineageList({ title, items }) {
+  if (!items || items.length === 0) return null;
+  return (
+    <div className="lineage-group">
+      <div className="lineage-title">{title}</div>
+      <ul className="lineage-list">
+        {items.map((it, i) => (
+          <li key={i}>
+            <div className="lineage-count">
+              {it.count} {it.count === 1 ? 'seção' : 'seções'}
+              <span className="lineage-arrow"> · </span>
+              <span className="lineage-local">{it.nm_local || `Local ${it.nr_local}`}</span>
+            </div>
+            {it.secoes && it.secoes.length > 0 && (
+              <div className="lineage-detail">seções {collapseRanges(it.secoes)}</div>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function SectionsBlock({ p }) {
   const inicio = Number(p.secoes_inicio) || 0;
   const fim = Number(p.secoes_fim) || 0;
@@ -38,8 +89,9 @@ function SectionsBlock({ p }) {
   const mantidas = Number(p.secoes_comuns) || 0;
   const novas = Number(p.secoes_adicionadas) || 0;
   const removidas = Number(p.secoes_removidas) || 0;
-  const movedIn = Number(p.secoes_movidas_in) || 0;
-  const movedOut = Number(p.secoes_movidas_out) || 0;
+
+  const recebidas = parseLineage(p.secoes_recebidas);
+  const enviadas = parseLineage(p.secoes_enviadas);
 
   return (
     <div className="section-block">
@@ -55,12 +107,8 @@ function SectionsBlock({ p }) {
           value={`${mantidas} mantidas · ${novas} novas · ${removidas} removidas`}
         />
       ) : null}
-      {(movedIn || movedOut) ? (
-        <PopupRow
-          label="Movimento"
-          value={`+${movedIn} vieram de outro local · ${movedOut} foram para outro`}
-        />
-      ) : null}
+      <LineageList title={`Vieram para cá em ${p.ano_fim}`} items={recebidas} />
+      <LineageList title={`Saíram deste local em ${p.ano_fim}`} items={enviadas} />
     </div>
   );
 }

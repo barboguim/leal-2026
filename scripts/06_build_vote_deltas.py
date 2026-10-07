@@ -227,10 +227,60 @@ def movement_counts(roster: pd.DataFrame, start_year: int, end_year: int) -> tup
     return moved_in, moved_out
 
 
-def local_churn_rows(roster: pd.DataFrame, start_year: int, end_year: int) -> dict[str, dict]:
+def section_lineage(
+    roster: pd.DataFrame, start_year: int, end_year: int, name_by_local: dict[str, str],
+) -> tuple[dict[str, list[dict]], dict[str, list[dict]]]:
+    """For each local, enumerate the other locais its sections came from
+    (received) and went to (sent). Each entry: {nr_local, nm_local, count,
+    secoes: ["42", "43", ...]}. Only sections whose hosting nr_local actually
+    changed between start_year and end_year are included — continuity is not
+    a transfer. Pattern mirrors mobi-pleito-2026's `compute_secao_transfers`
+    (same owner, sibling site)."""
+    start_lookup = section_local_lookup(roster, start_year)
+    end_lookup = section_local_lookup(roster, end_year)
+
+    # Build raw per-pair transfer lists: (other_local, section_number) tuples.
+    received_raw: dict[str, list[tuple[str, str]]] = {}
+    sent_raw: dict[str, list[tuple[str, str]]] = {}
+    for section_id, before_local in start_lookup.items():
+        after_local = end_lookup.get(section_id)
+        if not before_local or not after_local:
+            continue
+        if after_local == before_local:
+            continue
+        # section_id is "zona-secao"; we want just the secao number for display
+        secao_part = section_id.split("-", 1)[1] if "-" in section_id else section_id
+        sent_raw.setdefault(before_local, []).append((after_local, secao_part))
+        received_raw.setdefault(after_local, []).append((before_local, secao_part))
+
+    def summarize(transfers: list[tuple[str, str]]) -> list[dict]:
+        groups: dict[str, list[str]] = {}
+        for other_local, secao in transfers:
+            groups.setdefault(other_local, []).append(secao)
+        return [
+            {
+                "nr_local": other,
+                "nm_local": name_by_local.get(other, ""),
+                "count": len(set(secs)),
+                "secoes": sorted(set(secs), key=lambda s: (len(s), s)),
+            }
+            for other, secs in sorted(groups.items(), key=lambda kv: -len(set(kv[1])))
+        ]
+
+    received = {local: summarize(items) for local, items in received_raw.items()}
+    sent = {local: summarize(items) for local, items in sent_raw.items()}
+    return received, sent
+
+
+def local_churn_rows(
+    roster: pd.DataFrame, start_year: int, end_year: int, name_by_local: dict[str, str] | None = None,
+) -> dict[str, dict]:
     start_sets = section_sets_by_local(roster, start_year)
     end_sets = section_sets_by_local(roster, end_year)
     moved_in, moved_out = movement_counts(roster, start_year, end_year)
+    received_lineage, sent_lineage = section_lineage(
+        roster, start_year, end_year, name_by_local or {}
+    )
     rows = {}
 
     for nr_local in sorted(set(start_sets).union(end_sets)):
@@ -247,6 +297,9 @@ def local_churn_rows(roster: pd.DataFrame, start_year: int, end_year: int) -> di
         else:
             status = "end_only"
 
+        recebidas = received_lineage.get(nr_local, [])
+        enviadas = sent_lineage.get(nr_local, [])
+
         rows[nr_local] = {
             "nr_local": nr_local,
             "local_status": status,
@@ -258,6 +311,10 @@ def local_churn_rows(roster: pd.DataFrame, start_year: int, end_year: int) -> di
             "secoes_movidas_in": int(moved_in[nr_local]),
             "secoes_movidas_out": int(moved_out[nr_local]),
             "secao_churn": round((len(added) + len(removed)) / denom, 4),
+            # JSON strings: parsed client-side in DeltaPopupContent to render
+            # "N seções vieram de LOCAL X" / "N seções foram para LOCAL Y"
+            "secoes_recebidas": json.dumps(recebidas, ensure_ascii=False) if recebidas else None,
+            "secoes_enviadas": json.dumps(enviadas, ensure_ascii=False) if enviadas else None,
         }
     return rows
 
@@ -270,11 +327,12 @@ def build_local_delta_frame(
 ) -> pd.DataFrame:
     vote_lookup = aggregate_local_votes(votes_by_secao)
     info_lookup = locais.set_index("nr_local").to_dict("index") if not locais.empty else {}
+    name_by_local = {k: v.get("nm_local", "") for k, v in info_lookup.items()}
     rows = []
 
     for start_year, end_year in all_candidate_pairs(candidacy):
         pair = f"{start_year}-{end_year}"
-        churn = local_churn_rows(roster, start_year, end_year)
+        churn = local_churn_rows(roster, start_year, end_year, name_by_local)
         local_ids = set(churn)
         for lookup in vote_lookup.values():
             for year, nr_local in lookup:
