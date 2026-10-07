@@ -293,9 +293,47 @@ details.cand:not([open]) .cand-row:hover { background: var(--color-surface); }
   font-size: 13px; text-align: center; color: var(--color-text);
 }
 
+/* Panel-collapse chevron: hidden on desktop, visible only on mobile. */
+.panel-toggle {
+  display: none;
+  flex-shrink: 0;
+  width: 32px; height: 32px; padding: 0;
+  border: 0; background: none; border-radius: 50%;
+  color: var(--color-text-faint); cursor: pointer;
+  align-items: center; justify-content: center;
+  transition: color .15s, background .15s;
+}
+.panel-toggle:hover { background: var(--color-border); color: var(--color-text); }
+.panel-toggle svg { width: 18px; height: 18px; transition: transform .15s; }
+#panel.collapsed .panel-toggle svg { transform: rotate(-90deg); }
+
 @media (max-width: 640px) {
-  #panel { top: 12px; left: 12px; width: calc(100vw - 24px); max-height: 54vh; }
-  #compare-panel { left: 12px; right: 12px; bottom: 12px; transform: none; overflow-x: auto; }
+  /* Dock the panel to the top of the screen, full width, with a rounded
+     bottom. Max 48 vh leaves room for the map; the collapse button lets
+     the user shrink it to just the header. Pattern mirrors
+     mobi-pleito-2026. */
+  #panel {
+    top: 0; left: 0; right: 0;
+    width: 100vw; max-width: 100vw; max-height: 48vh;
+    border-top: none; border-left: none; border-right: none;
+    border-radius: 0 0 var(--radius-panel) var(--radius-panel);
+    overflow-y: auto;
+  }
+  .panel-toggle { display: inline-flex; }
+  .panel-header {
+    position: sticky; top: 0; z-index: 2;
+    background: var(--color-bg);
+  }
+  #panel.collapsed { max-height: none; overflow: visible; }
+  #panel.collapsed #panel-body { display: none; }
+  #panel.collapsed .panel-header { border-bottom: none; padding-bottom: 8px; margin-bottom: 0; }
+  #panel h1 { font-size: 16px; }
+  .group-row { min-height: 40px; }
+
+  #compare-panel {
+    left: 12px; right: 12px; bottom: 12px;
+    transform: none; overflow-x: auto;
+  }
   .control-row-3 { grid-template-columns: 1fr; }
 }
 

@@ -10,7 +10,7 @@ export default function YearSelectorLayer({
   years, selectedYear, onYearChange,
 }) {
   return (
-    <details className={'group' + (visible ? '' : ' is-hidden')} open>
+    <details className={'group' + (visible ? '' : ' is-hidden')}>
       <summary className="group-row">
         <EyeToggle visible={visible} onToggle={onToggleVisible} label="Ano a ano" />
         <span className="dot" style={{ background: COLORS.hugo_leal }} />

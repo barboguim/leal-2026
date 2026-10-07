@@ -52,6 +52,7 @@ export default function App() {
   const [showYears, setShowYears] = useState(true);
   const [showCompare, setShowCompare] = useState(false);
   const [compareSelection, setCompareSelection] = useState(null);
+  const [panelCollapsed, setPanelCollapsed] = useState(false);
 
   // Default selections once data lands. Year picks the most recent cycle
   // (2026 when the pipeline has it). Pair picks 2022-2026 when available,
@@ -137,13 +138,27 @@ export default function App() {
         )}
       </MapView>
 
-      <div id="panel">
+      <div id="panel" className={panelCollapsed ? 'collapsed' : undefined}>
         <div className="panel-header">
           <div>
             <h1>Mapa eleitoral</h1>
             <div className="subtitle">Hugo Leal · Niterói 2010 → 2026</div>
           </div>
+          {/* Mobile-only chevron. Styled to appear only below the 640 px
+              breakpoint; invisible on desktop, where the whole panel is
+              always visible. Pattern lifted from mobi-pleito-2026. */}
+          <button
+            type="button"
+            className="panel-toggle"
+            aria-label={panelCollapsed ? 'Expandir painel' : 'Recolher painel'}
+            onClick={() => setPanelCollapsed(v => !v)}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
         </div>
+        <div id="panel-body">
 
         <div className="section-title">Camadas</div>
 
@@ -174,6 +189,7 @@ export default function App() {
         {showYears && featuresWithShare.length > 0 && (
           <IntensityLegend year={selectedYear} />
         )}
+        </div>
       </div>
 
       <CompareTable selection={compareSelection} data={data} />
