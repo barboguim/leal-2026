@@ -1,7 +1,6 @@
 import CompetitorSection from './CompetitorSection';
-import PsdBreakdownSection from './PsdBreakdownSection';
 import ProfileSection from './ProfileSection';
-import { COLORS, LABELS, COMPETITOR_LAYER_BY_METRIC } from '../lib/constants';
+import { COLORS, LABELS } from '../lib/constants';
 import { electionType } from '../lib/format';
 
 function voteShareText(votos, totalValidos) {
@@ -10,8 +9,9 @@ function voteShareText(votos, totalValidos) {
 }
 
 export default function PopupContent({ p, layerKey }) {
-  // true for hugo_leal / felipe_peixoto only, not psd
-  const hasCompetitorData = Object.values(COMPETITOR_LAYER_BY_METRIC).includes(layerKey);
+  const hasCompetitors = Boolean(p.top1_nome);
+  const hasProfile = Number.isFinite(Number(p.total_eleitores));
+  const hasPerformanceShare = Number.isFinite(Number(p.total_votos_validos));
 
   return (
     <div>
@@ -37,19 +37,24 @@ export default function PopupContent({ p, layerKey }) {
         </>
       ) : (
         <>
-          {hasCompetitorData && (
-            <div className="popup-row"><span className="popup-label">Cargo pretendido</span><span className="popup-val">{p.cargo}</span></div>
+          {p.cargo && (
+            <div className="popup-row"><span className="popup-label">Cargo</span><span className="popup-val">{p.cargo}</span></div>
           )}
           <div className="popup-row"><span className="popup-label">Ano</span><span className="popup-val">{p.ano}</span></div>
-          <div className="popup-row"><span className="popup-label">Tipo de eleicao</span><span className="popup-val">{electionType(p.ano)}</span></div>
+          <div className="popup-row"><span className="popup-label">Tipo</span><span className="popup-val">{electionType(p.ano)}</span></div>
           <div className="popup-row"><span className="popup-label">Votos</span><span className="popup-val">{p.QT_VOTOS.toLocaleString('pt-BR')}</span></div>
-          {hasCompetitorData && (
-            <div className="popup-row"><span className="popup-label">% share</span><span className="popup-val">{voteShareText(p.QT_VOTOS, p.total_votos_validos)}</span></div>
+          {Number.isFinite(Number(p.share_pct)) && (
+            <div className="popup-row">
+              <span className="popup-label">% dos votos de Hugo</span>
+              <span className="popup-val">{Number(p.share_pct).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%</span>
+            </div>
           )}
-          <div className="popup-row"><span className="popup-label">Secoes</span><span className="popup-val">{p.n_secoes}</span></div>
-          {hasCompetitorData && <CompetitorSection title="Concorrencia" props={p} />}
-          {layerKey === 'psd' && <PsdBreakdownSection props={p} />}
-          <ProfileSection props={p} />
+          {hasPerformanceShare && (
+            <div className="popup-row"><span className="popup-label">% dos votos válidos</span><span className="popup-val">{voteShareText(p.QT_VOTOS, p.total_votos_validos)}</span></div>
+          )}
+          <div className="popup-row"><span className="popup-label">Secoes</span><span className="popup-val">{p.n_secoes ?? '—'}</span></div>
+          {hasCompetitors && <CompetitorSection title="Concorrencia" props={p} />}
+          {hasProfile && <ProfileSection props={p} />}
         </>
       )}
     </div>
