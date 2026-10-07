@@ -83,23 +83,20 @@ export default function App() {
   }
 
   // --- Markers (Ano a ano) --------------------------------------------------
-  // share_pct = Hugo's share of VALID votes at that local for the cargo —
-  // "performance share", answers "where does Hugo do best?". Falls back to
-  // 0 when total_votos_validos is absent (older years before script 07, or
-  // locais where the raw TSE row was missing from the munzona dump).
+  // share_pct = this local's QT_VOTOS / Hugo's total QT_VOTOS for the year.
+  // "Distribution share" — answers "what fraction of Hugo's votes come from
+  // this local?". The user asked for the metric to be based on Hugo himself,
+  // not against the field. Across cycles 2010-2026 observed max is ~5%, so
+  // five 1-point bins (0-1, 1-2, ...) cover the range with round edges.
   const hugoFC = data[HUGO];
   const yearFeats = (selectedYear ? hugoFC.features.filter(f => f.properties.ano === selectedYear) : hugoFC.features);
   const localPoints = selectedYear ? yearFeats : aggregateByLocal(yearFeats);
   const yearTotal = localPoints.reduce((s, f) => s + Number(f.properties.QT_VOTOS || 0), 0);
   const featuresWithShare = localPoints.map(f => {
     const votos = Number(f.properties.QT_VOTOS || 0);
-    const validos = Number(f.properties.total_votos_validos || 0);
-    const share_pct = validos > 0 ? (votos / validos) * 100 : 0;
+    const share_pct = yearTotal > 0 ? (votos / yearTotal) * 100 : 0;
     return { ...f, properties: { ...f.properties, share_pct } };
   });
-  // Fixed-interval classes: 0-1, 1-2, 2-3, 3-4, 4%+. Across all five Hugo
-  // cycles the observed max is ~4.7%, so five 1-point bins cover the full
-  // range with round, legible edges — no quantile math, no mystery breaks.
   const breaks = [1, 2, 3, 4];
 
   // --- Delta (Comparativo) --------------------------------------------------
@@ -139,7 +136,8 @@ export default function App() {
       <div id="panel">
         <div className="panel-header">
           <div>
-            <h1>Hugo Leal · Niterói 2010 → 2026</h1>
+            <h1>Mapa eleitoral</h1>
+            <div className="subtitle">Hugo Leal · Niterói 2010 → 2026</div>
           </div>
         </div>
 

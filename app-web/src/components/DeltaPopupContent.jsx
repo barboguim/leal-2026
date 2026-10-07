@@ -1,5 +1,5 @@
 import CompetitorSection from './CompetitorSection';
-import { formatSigned, formatPct, electionPairLabel, STATUS_LABELS } from '../lib/format';
+import { formatSigned, electionPairLabel, STATUS_LABELS } from '../lib/format';
 import { COMPETITOR_LAYER_BY_METRIC } from '../lib/constants';
 
 function PopupRow({ label, value, color }) {
@@ -20,8 +20,52 @@ function candidateSummary(inicio, fim, delta, status, cargoDiferente) {
   return `${inicio} -> ${fim} (${formatSigned(delta)})${cargoNote}`;
 }
 
+// Human-readable section status for the local across the two years.
+// local_status comes from scripts/06_build_vote_deltas.py and is one of:
+// 'both' / 'start_only' / 'end_only' / 'vote_data_only'.
+function localStatusLabel(status, anoInicio, anoFim) {
+  if (status === 'start_only') return `Local desapareceu em ${anoFim}`;
+  if (status === 'end_only') return `Local novo em ${anoFim}`;
+  if (status === 'vote_data_only') return 'Local sem dados cadastrais';
+  return `Local ativo em ${anoInicio} e ${anoFim}`;
+}
+
+function SectionsBlock({ p }) {
+  const inicio = Number(p.secoes_inicio) || 0;
+  const fim = Number(p.secoes_fim) || 0;
+  if (inicio === 0 && fim === 0) return null;
+
+  const mantidas = Number(p.secoes_comuns) || 0;
+  const novas = Number(p.secoes_adicionadas) || 0;
+  const removidas = Number(p.secoes_removidas) || 0;
+  const movedIn = Number(p.secoes_movidas_in) || 0;
+  const movedOut = Number(p.secoes_movidas_out) || 0;
+
+  return (
+    <div className="section-block">
+      <div className="section-block-title">Seções neste local</div>
+      <div className="section-block-note">{localStatusLabel(p.local_status, p.ano_inicio, p.ano_fim)}</div>
+      <PopupRow
+        label={`${p.ano_inicio} → ${p.ano_fim}`}
+        value={`${inicio} → ${fim} seções`}
+      />
+      {(mantidas || novas || removidas) ? (
+        <PopupRow
+          label="Composição"
+          value={`${mantidas} mantidas · ${novas} novas · ${removidas} removidas`}
+        />
+      ) : null}
+      {(movedIn || movedOut) ? (
+        <PopupRow
+          label="Movimento"
+          value={`+${movedIn} vieram de outro local · ${movedOut} foram para outro`}
+        />
+      ) : null}
+    </div>
+  );
+}
+
 export default function DeltaPopupContent({ p, metric, color, selectedDeltaMetric, findYearLocalFeature }) {
-  const moved = (Number(p.secoes_movidas_in) || 0) + (Number(p.secoes_movidas_out) || 0);
   const competitorLayer = COMPETITOR_LAYER_BY_METRIC[selectedDeltaMetric];
   const startFeat = competitorLayer ? findYearLocalFeature(competitorLayer, p.ano_inicio, p.nr_local) : null;
   const endFeat = competitorLayer ? findYearLocalFeature(competitorLayer, p.ano_fim, p.nr_local) : null;
@@ -44,17 +88,7 @@ export default function DeltaPopupContent({ p, metric, color, selectedDeltaMetri
           <CompetitorSection title={`Concorrencia ${p.ano_fim}`} props={endFeat ? endFeat.properties : {}} />
         </>
       )}
-      {/* Section-churn fields (secoes_inicio/fim, secao_churn, secoes_movidas)
-          are diagnostic — useful to a data analyst, cryptic to a map reader.
-          Collapsed under a details block so the common case stays clean. */}
-      {(Number(p.secoes_inicio) || Number(p.secoes_fim)) && (
-        <details className="popup-competitors">
-          <summary>Detalhes de secoes</summary>
-          <PopupRow label="Secoes" value={`${p.secoes_inicio || 0} -> ${p.secoes_fim || 0}`} />
-          <PopupRow label="Troca de secoes" value={formatPct((Number(p.secao_churn) || 0) * 100)} />
-          {moved > 0 && <PopupRow label="Secoes com troca" value={`+${p.secoes_movidas_in || 0} / -${p.secoes_movidas_out || 0}`} />}
-        </details>
-      )}
+      <SectionsBlock p={p} />
     </div>
   );
 }

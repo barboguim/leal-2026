@@ -412,3 +412,24 @@ details.group.is-hidden .group-row .group-count { color: var(--color-text-faint)
   font-size: 10.5px;
   color: var(--color-text-muted);
 }
+
+/* Section-churn block inside the Comparativo popup. Labelled, not collapsed,
+   so the counts actually tell a story — mobi-pleito-2026 pattern applied to
+   electoral deltas. */
+.section-block {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
+}
+.section-block-title {
+  font: 500 11px var(--font-sans);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--color-text-strong);
+  margin-bottom: 2px;
+}
+.section-block-note {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-bottom: 6px;
+}

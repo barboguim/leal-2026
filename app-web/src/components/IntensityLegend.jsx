@@ -16,9 +16,9 @@ const CLASS_LABELS = [
 export default function IntensityLegend({ year }) {
   return (
     <div className="intensity-legend">
-      <div className="section-title">Intensidade — % dos votos válidos</div>
+      <div className="section-title">Intensidade — % dos votos de Hugo</div>
       <div className="intensity-sub">
-        votos de Hugo sobre o total válido para Deputado Federal no local{year ? ` (${year})` : ''}
+        fração dos votos de Hugo em Niterói que vieram deste local{year ? ` (${year})` : ''}
       </div>
       <ul className="intensity-classes">
         {HEAT_PALETTE.map((color, i) => (
