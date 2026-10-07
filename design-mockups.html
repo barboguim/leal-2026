@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LEAL design mockups</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://api.fontshare.com">
+  <!-- Waldenburg (ElevenLabs' actual display face) is a paid Dinamo Type license,
+       not embeddable for free. Switzer (Fontshare, free/no-license) stands in for
+       the wordmark specifically -- a cold Swiss grotesk closer to Waldenburg's
+       character than Inter, and it sidesteps Inter/Geist's overused-face fatigue.
+       Inter stays for every functional/body role: that split is literally what
+       ElevenLabs runs (Waldenburg display + Inter everything else), not a settle. -->
+  <link href="https://api.fontshare.com/v2/css?f[]=switzer@300&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* ElevenLabs surface stack -- eggshell -> taupe -> stone. Never white, never grey. */
+      --bg:#fdfcfc; --surface:#f5f3f1; --muted:#ebe8e4; --border:#ebe8e4;
+      /* Warm ink->ash text ramp. */
+      --text:#000000; --text-strong:#44403b; --quiet:#777169; --faint:#a59f97;
+      /* Data colors -- the ONLY color anywhere in the interface. */
+      --hugo:#8B4A9C; --felipe:#1B7952; --psd:#1E3A5F;
+      --loss:#B91C1C; --gain:#0F766E; --profile:#312E81; --potential:#A6396B;
+      --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+      --font-display: 'Switzer', 'Inter', ui-sans-serif, system-ui, sans-serif;
+      --font-mono: 'Geist Mono', ui-monospace, 'IBM Plex Mono', Menlo, monospace;
+      --radius-panel:12px; --radius-control:8px; --radius-pill:9999px;
+      /* the ONE shadow -- ElevenLabs' whisper. Popup (and panel, for lift) only. */
+      --shadow-panel: rgba(0,0,0,.4) 0px 0px 1px 0px, rgba(0,0,0,.04) 0px 1px 1px 0px, rgba(0,0,0,.04) 0px 2px 4px 0px;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #e4e1dc; color: var(--text); font: 13px/1.5 var(--font-sans); letter-spacing: .01em; }
+    main { display: grid; gap: 32px; max-width: 1180px; margin: 0 auto; padding: 36px 24px 60px; }
+    h1 { font-size: 20px; margin: 0; font-weight: 500; }
+    h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--quiet); margin: 0 0 6px; font-weight: 500; }
+    .note { color: var(--quiet); max-width: 760px; font-size: 13px; }
+
+    /* Stand-in for the real CartoDB Positron basemap -- warm eggshell/taupe
+       with a few faint organic lines suggesting streets, never a grid. */
+    .stage { min-height: 600px; position: relative; overflow: hidden; border: 1px solid var(--border); background: var(--surface); }
+    .map {
+      position: absolute; inset: 0; background: var(--surface);
+      background-image:
+        radial-gradient(ellipse at 22% 28%, rgba(253,252,252,.85), transparent 52%),
+        radial-gradient(ellipse at 72% 68%, rgba(253,252,252,.65), transparent 58%),
+        linear-gradient(102deg, transparent 37%, rgba(0,0,0,.028) 37.6%, transparent 38.2%),
+        linear-gradient(151deg, transparent 61%, rgba(0,0,0,.022) 61.6%, transparent 62.2%),
+        linear-gradient(18deg, transparent 79%, rgba(0,0,0,.02) 79.6%, transparent 80.2%);
+    }
+    .map::after { content: "NITEROI · MAPA ELEITORAL"; position: absolute; right: 28px; bottom: 24px; color: var(--faint); font: 11px var(--font-mono); letter-spacing: .1em; }
+
+    /* Active/focused-local marker -- no accent color exists, so selection is
+       marked by a thin ink ring + whisper shadow (monochrome emphasis), never
+       a colored halo. The dot itself always keeps its own data color. */
+    .active-marker { position: absolute; width: 10px; height: 10px; border-radius: 50%; z-index: 2; }
+    .active-marker::after {
+      content: ""; position: absolute; inset: -6px; border-radius: 50%;
+      border: 2px solid var(--text); box-shadow: var(--shadow-panel);
+    }
+    .active-marker.felipe { background: var(--felipe); }
+    .active-marker.loss { background: var(--loss); }
+
+    /* Panel sits on the eggshell canvas, separated from the map only by a
+       stone hairline + the one whisper shadow -- no tinted base tier. */
+    .panel {
+      position: absolute; top: 16px; left: 16px; width: 344px; padding: 16px;
+      max-height: 568px; overflow-y: auto;
+      background: var(--bg);
+      border: 1px solid var(--border); border-radius: var(--radius-panel);
+      box-shadow: var(--shadow-panel);
+    }
+    .popup {
+      position: absolute; background: var(--bg);
+      border: 1px solid var(--border); border-radius: var(--radius-panel);
+      box-shadow: var(--shadow-panel);
+    }
+
+    .brand { display: flex; align-items: baseline; margin-bottom: 2px; padding-top: 4px; }
+    .brand strong { font-family: var(--font-display); font-size: 30px; font-weight: 300; letter-spacing: -.02em; color: var(--text); }
+    .sub { color: var(--quiet); font: 500 11px var(--font-sans); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+
+    .group { border-top: 1px solid var(--border); padding-top: 12px; margin-top: 18px; }
+    .group:first-of-type { border-top: 0; padding-top: 0; margin-top: 0; }
+    .group-title { color: var(--text-strong); font-size: 11px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 8px; }
+
+    .row { display: flex; align-items: center; gap: 8px; min-height: 28px; font-size: 13px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
+    .row label { flex: 1; }
+    .num { color: var(--quiet); font: 13px var(--font-mono); }
+
+    .field { display: grid; gap: 3px; }
+    .field .lbl { color: var(--quiet); font-size: 10px; }
+    select { width: 100%; border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--bg); color: var(--text); padding: 6px 7px; font: 13px inherit; transition: border-color .15s; }
+    select:hover { border-color: var(--text-strong); }
+    select:focus-visible { outline: 2px solid var(--text); outline-offset: 1px; border-color: var(--text); }
+    .fields-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+    .chip { border: 1px solid var(--border); border-radius: var(--radius-pill); padding: 4px 11px; font: 12px var(--font-mono); color: var(--quiet); background: var(--bg); cursor: pointer; transition: border-color .15s, background .15s, color .15s; }
+    .chip:hover { border-color: var(--text-strong); color: var(--text); }
+    .chip.active { background: var(--text); border-color: var(--text); color: var(--bg); }
+    .chip.active:hover { border-color: var(--text); }
+    /* Chips inside an open candidate card sit on taupe already, so they read
+       as recessed (stone fill) rather than floating. */
+    .cand-compare .chip { background: var(--muted); }
+    .cand-compare .chip.active { background: var(--text); }
+
+    .legend { display: flex; align-items: center; gap: 8px; color: var(--quiet); font-size: 10px; margin-top: 8px; }
+    .scale { height: 5px; flex: 1; border-radius: var(--radius-pill); background: linear-gradient(90deg, var(--loss), var(--surface), var(--gain)); }
+    .scale.profile { background: linear-gradient(90deg, var(--surface), var(--profile)); }
+
+    /* Year chips -- same pattern as the delta-pair chips, plus a municipal/geral
+       dot per year and a small legend, same as the original YearFilter. */
+    .year-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+    .ychip { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--border); border-radius: var(--radius-pill); padding: 4px 11px 4px 8px; font: 12px var(--font-mono); color: var(--quiet); background: var(--muted); cursor: pointer; transition: border-color .15s, background .15s, color .15s; }
+    .ychip:hover { border-color: var(--text-strong); color: var(--text); }
+    .ychip.active { background: var(--text); border-color: var(--text); color: var(--bg); }
+    .ychip i { width: 6px; height: 6px; border-radius: 50%; flex: 0 0 auto; }
+    .year-legend { display: flex; align-items: center; gap: 12px; color: var(--quiet); font-size: 10px; margin-top: 6px; }
+    .year-legend span { display: inline-flex; align-items: center; gap: 4px; }
+    .year-legend i { display: inline-block; width: 6px; height: 6px; border-radius: 50%; flex: 0 0 auto; }
+
+    /* Dimensao chips (Perfil) -- single-select row, same visual language as
+       the delta-pair chips. */
+    .dim-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+
+    /* Each candidate is a self-contained <details> -- own year chips, own
+       delta sublayer. Independent, not mutually exclusive: any combination
+       can be open at once. Native <details>, no JS. Click a name to try it.
+       Open state is a flat taupe fill on the eggshell panel -- no border, no
+       shadow -- tonal stepping is the only depth cue (ElevenLabs §4.2). */
+    details.cand { border-radius: var(--radius-control); margin-bottom: 2px; }
+    details.cand[open] {
+      background: var(--surface);
+      margin: 6px 0 12px;
+    }
+    .cand-row { display: flex; align-items: center; gap: 9px; min-height: 34px; font-size: 13px; padding: 0 10px; border-radius: var(--radius-control); cursor: pointer; list-style: none; transition: background .15s; }
+    .cand-row::-webkit-details-marker { display: none; }
+    details.cand:not([open]) .cand-row:hover { background: var(--surface); }
+    .cand-row:focus-visible { outline: 2px solid var(--text); outline-offset: 1px; }
+    .cand-row input[type="checkbox"] { flex: 0 0 auto; }
+    .cand-row .cand-name { flex: 1; font-weight: 500; }
+    .cand-body { padding: 2px 12px 14px 37px; }
+    .cand-body .year-chips { margin-top: 0; }
+
+    /* Delta sub-layer toggle -- unchecked by default; a candidate's pair chips
+       only render once their own toggle is on. Checkbox and label are direct
+       siblings of .cand-compare (all children of .cand-body) so the plain
+       sibling selector below can reach it. */
+    .cand-body .delta-toggle { position: absolute; opacity: 0; pointer-events: none; }
+    .cand-body .delta-toggle:focus-visible ~ .delta-toggle-row { outline: 2px solid var(--text); outline-offset: 1px; }
+    .delta-toggle-row { display: flex; align-items: center; gap: 7px; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); font-size: 11px; cursor: pointer; border-radius: var(--radius-control); transition: color .15s; }
+    .delta-toggle-row:hover { color: var(--text); }
+    .cand-compare { display: none; margin-top: 8px; }
+    .delta-toggle:checked ~ .cand-compare { display: block; }
+
+    /* Filtros -- native <details>, click the summary to try it. */
+    details.filtros { border-top: 1px solid var(--border); padding-top: 10px; margin-top: 12px; }
+    details.filtros summary { cursor: pointer; font-size: 11px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--text-strong); list-style: none; padding: 4px; margin: -4px; border-radius: var(--radius-control); transition: color .15s, background .15s; }
+    details.filtros summary::-webkit-details-marker { display: none; }
+    details.filtros summary:hover { color: var(--text); background: var(--surface); }
+    details.filtros summary:focus-visible { outline: 2px solid var(--text); outline-offset: 1px; }
+    details.filtros summary::before { content: "▸ "; }
+    details.filtros[open] summary::before { content: "▾ "; }
+    details.filtros .fields-3 { margin-top: 8px; }
+
+    .stats { margin-top: 16px; padding: 12px; background: var(--surface); border-radius: var(--radius-control); font-size: 11px; color: var(--quiet); line-height: 1.6; }
+    .stats b { color: var(--text); font-family: var(--font-mono); font-size: 13px; font-weight: 400; }
+
+    .popup { top: 38px; right: 30px; width: 360px; padding: 18px; }
+    .popup h3 { margin: 0 0 3px; font-size: 14px; font-weight: 500; }
+    .place { color: var(--quiet); font-size: 10px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: .04em; }
+    .record { display: grid; grid-template-columns: 1fr auto; gap: 6px 16px; font-size: 12px; }
+    .record span:nth-child(odd) { color: var(--quiet); }
+    .record span:nth-child(even) { text-align: right; font: 400 13px var(--font-mono); }
+    details.disc { border-top: 1px solid var(--border); margin-top: 12px; padding-top: 9px; }
+    details.disc summary { cursor: pointer; color: var(--text); font-weight: 500; font-size: 11px; border-radius: 4px; transition: opacity .15s; }
+    details.disc summary:hover { opacity: .65; }
+    details.disc summary:focus-visible { outline: 2px solid var(--text); outline-offset: 1px; }
+
+    input[type="checkbox"] { accent-color: var(--text); cursor: pointer; }
+    .competitors { display: grid; grid-template-columns: 20px 1fr auto; gap: 4px 8px; margin-top: 8px; font-size: 11px; }
+    .competitors .rank { color: var(--quiet); }
+    .competitors .votes { font: 400 11px var(--font-mono); }
+    .disclaimer { margin-top: 9px; padding: 8px 9px; background: var(--muted); border-radius: var(--radius-control); color: var(--quiet); font-size: 11px; line-height: 1.5; }
+
+    @media (max-width: 820px) {
+      .stage { min-height: 900px; }
+      .panel { width: calc(100% - 28px); left: 14px; max-height: none; }
+      .popup { top: 480px; left: 14px; right: 14px; width: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div>
+      <h1>LEAL · visual handoff mockups</h1>
+      <p class="note">ElevenLabs pass (DESIGN2.md — final, supersedes DESIGN.md / referencesv2.md). Structure and IA unchanged: no dropdowns anywhere, each candidate is self-contained (checkbox = map visibility, name click = expand that candidate's own year chips + "Comparar dois anos" sub-layer), Perfil/Zonas com Potencial/Filtros stay independent. What's new: fully monochrome chrome — warm eggshell→taupe→stone surfaces, an ink→ash text ramp, an Inter weight-300 whisper-weight wordmark, Geist Mono for every number. There is no UI accent color; the only color left is data (candidate dots, the delta scale, the demographic scale). Selection on the map is marked by a thin ink ring, never a colored halo. Try it — expand Felipe or PSD, toggle their delta comparison, open Filtros.</p>
+    </div>
+
+    <section>
+      <h2>Sidebar (Hugo expanded, comparing) + candidate popup</h2>
+      <div class="stage">
+        <div class="map"></div>
+        <div class="active-marker felipe" style="left:47%; top:46%;" title="Local selecionado — amber marca o foco atual, nao o dado"></div>
+        <aside class="panel">
+          <div class="panel-head">
+            <div class="brand"><strong>MAPA ELEITORAL</strong></div>
+            <div class="sub">Analise Territorial — Niteroi</div>
+          </div>
+
+          <div class="group">
+            <div class="group-title">Candidatos</div>
+            <p class="note" style="font-size:10px;margin-bottom:8px">Caixa mostra/oculta no mapa. Clique no nome: anos deste candidato. "Comparar dois anos": variacao entre um par.</p>
+
+            <details class="cand" open>
+              <summary class="cand-row">
+                <input type="checkbox" checked onclick="event.stopPropagation()">
+                <i class="dot" style="background:var(--hugo)"></i>
+                <span class="cand-name">Hugo Leal</span>
+                <span class="num">265</span>
+              </summary>
+              <div class="cand-body">
+                <div class="year-chips">
+                  <span class="ychip">Todos</span>
+                  <span class="ychip"><i style="background:#BE185D"></i>2010</span>
+                  <span class="ychip"><i style="background:#BE185D"></i>2014</span>
+                  <span class="ychip"><i style="background:#BE185D"></i>2018</span>
+                  <span class="ychip active"><i style="background:#BE185D"></i>2022</span>
+                </div>
+                <div class="year-legend"><span><i style="background:#CA8A04"></i>Municipal</span><span><i style="background:#BE185D"></i>Geral</span></div>
+                <input type="checkbox" id="dt-hugo" class="delta-toggle" checked>
+                <label for="dt-hugo" class="delta-toggle-row">Comparar dois anos</label>
+                <div class="cand-compare">
+                  <div class="chips">
+                    <span class="chip">2010-2014</span><span class="chip">2010-2018</span><span class="chip">2014-2018</span><span class="chip active">2018-2022</span>
+                  </div>
+                  <div class="legend"><span>perdeu</span><i class="scale"></i><span>ganhou</span><span class="num" style="margin-left:auto">+42</span></div>
+                </div>
+              </div>
+            </details>
+
+            <details class="cand">
+              <summary class="cand-row">
+                <input type="checkbox" checked onclick="event.stopPropagation()">
+                <i class="dot" style="background:var(--felipe)"></i>
+                <span class="cand-name">Felipe Peixoto</span>
+                <span class="num">402</span>
+              </summary>
+              <div class="cand-body">
+                <div class="year-chips">
+                  <span class="ychip">Todos</span>
+                  <span class="ychip"><i style="background:#BE185D"></i>2010</span>
+                  <span class="ychip"><i style="background:#CA8A04"></i>2012</span>
+                  <span class="ychip"><i style="background:#CA8A04"></i>2016</span>
+                  <span class="ychip"><i style="background:#BE185D"></i>2018</span>
+                  <span class="ychip"><i style="background:#CA8A04"></i>2020</span>
+                  <span class="ychip active"><i style="background:#BE185D"></i>2022</span>
+                </div>
+                <div class="year-legend"><span><i style="background:#CA8A04"></i>Municipal</span><span><i style="background:#BE185D"></i>Geral</span></div>
+                <input type="checkbox" id="dt-felipe" class="delta-toggle">
+                <label for="dt-felipe" class="delta-toggle-row">Comparar dois anos</label>
+                <div class="cand-compare">
+                  <div class="chips">
+                    <span class="chip">2010-2018</span><span class="chip">2012-2016</span><span class="chip">2016-2020</span><span class="chip active">2018-2022</span>
+                  </div>
+                  <div class="legend"><span>perdeu</span><i class="scale"></i><span>ganhou</span></div>
+                </div>
+              </div>
+            </details>
+
+            <details class="cand">
+              <summary class="cand-row">
+                <input type="checkbox" onclick="event.stopPropagation()">
+                <i class="dot" style="background:var(--psd)"></i>
+                <span class="cand-name">PSD</span>
+                <span class="num">—</span>
+              </summary>
+              <div class="cand-body">
+                <div class="year-chips">
+                  <span class="ychip">Todos</span>
+                  <span class="ychip"><i style="background:#CA8A04"></i>2012</span>
+                  <span class="ychip"><i style="background:#BE185D"></i>2014</span>
+                  <span class="ychip"><i style="background:#CA8A04"></i>2016</span>
+                  <span class="ychip"><i style="background:#BE185D"></i>2018</span>
+                  <span class="ychip"><i style="background:#CA8A04"></i>2020</span>
+                  <span class="ychip active"><i style="background:#BE185D"></i>2022</span>
+                  <span class="ychip"><i style="background:#CA8A04"></i>2024</span>
+                </div>
+                <div class="year-legend"><span><i style="background:#CA8A04"></i>Municipal</span><span><i style="background:#BE185D"></i>Geral</span></div>
+                <input type="checkbox" id="dt-psd" class="delta-toggle">
+                <label for="dt-psd" class="delta-toggle-row">Comparar dois anos</label>
+                <div class="cand-compare">
+                  <div class="chips">
+                    <span class="chip">2012-2016</span><span class="chip">2014-2018</span><span class="chip">2016-2020</span><span class="chip">2018-2022</span><span class="chip active">2020-2024</span>
+                  </div>
+                  <div class="legend"><span>perdeu</span><i class="scale"></i><span>ganhou</span></div>
+                </div>
+              </div>
+            </details>
+          </div>
+
+          <div class="group">
+            <div class="group-title">Perfil do Eleitorado</div>
+            <div class="row"><input type="checkbox"><label>Perfil do eleitorado</label><span class="num">536</span></div>
+            <div class="dim-chips">
+              <span class="chip active">Genero</span><span class="chip">Faixa etaria</span><span class="chip">Escolaridade</span>
+            </div>
+            <div class="legend"><span>menor concentracao</span><i class="scale profile"></i><span>maior concentracao</span></div>
+          </div>
+
+          <div class="group">
+            <div class="row"><input type="checkbox"><i class="dot" style="background:var(--potential)"></i><label>Zonas com Potencial</label><span class="num">20</span></div>
+            <p class="note" style="font-size:10px;margin-top:4px">Similaridade de composicao do eleitorado com as bases de Hugo — nao indica quem vai votar.</p>
+          </div>
+
+          <details class="filtros">
+            <summary>Filtros — Regiao / Bairro</summary>
+            <div class="fields-3">
+              <select><option>Todas as regioes</option></select>
+              <select><option>Todos os bairros</option></select>
+              <select><option>Limites</option></select>
+            </div>
+          </details>
+
+          <div class="stats">Hugo <b>265</b> · Felipe <b>402</b> · PSD <b>476</b> · Delta selecionado <b>+42</b></div>
+        </aside>
+
+        <article class="popup">
+          <h3>Escola Municipal Altivo Cesar</h3><div class="place">Barreto · local de votacao</div>
+          <div class="record"><span>Candidato</span><span style="color:var(--felipe)">Felipe Peixoto</span><span>Partido</span><span>PSD</span><span>Cargo pretendido</span><span>Deputado Federal</span><span>Tipo de eleicao</span><span>Geral</span><span>Ano</span><span>2022</span><span>Votos</span><span>211</span><span>Participacao</span><span>18,4%</span><span>Secoes</span><span>20</span></div>
+          <details class="disc"><summary>Concorrencia · top 3</summary><div class="competitors"><span class="rank">1º</span><span>Candidato A · Partido X</span><span class="votes">340</span><span class="rank">2º</span><span>Candidato B · Partido Y</span><span class="votes">198</span><span class="rank">3º</span><span>Candidato C · Partido Z</span><span class="votes">121</span></div></details>
+          <details class="disc"><summary>Perfil do eleitorado deste local</summary><div class="disclaimer">Composicao do eleitorado local — nao indica em quem estes eleitores votaram.</div></details>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2>Delta popup — two year-specific competitor disclosures</h2>
+      <div class="stage" style="min-height:500px">
+        <div class="map"></div>
+        <div class="active-marker loss" style="left:18%; top:62%;" title="Local selecionado"></div>
+        <article class="popup" style="top:24px;right:50%;transform:translateX(50%);width:420px">
+          <h3>Escola Municipal Altivo Cesar</h3><div class="place">Barreto · leitura comparativa</div>
+          <div class="record"><span>Par</span><span>2018 → 2022</span><span>Tipo</span><span>Geral → Geral</span><span>Delta Hugo</span><span style="color:var(--loss)">−17</span><span>Hugo</span><span>26 → 9</span><span>Felipe</span><span>— → —</span><span>PSD</span><span>220 → 184</span><span>Secoes</span><span>39 → 39</span><span>Movimento de secoes</span><span>0%</span></div>
+          <details class="disc"><summary>Concorrencia 2018 · top 3</summary><div class="competitors"><span class="rank">1º</span><span>Concorrente A · Partido X</span><span class="votes">193</span><span class="rank">2º</span><span>Concorrente B · Partido Y</span><span class="votes">142</span><span class="rank">3º</span><span>Concorrente C · Partido Z</span><span class="votes">101</span></div></details>
+          <details class="disc"><summary>Concorrencia 2022 · top 3</summary><div class="competitors"><span class="rank">1º</span><span>Concorrente D · Partido W</span><span class="votes">211</span><span class="rank">2º</span><span>Concorrente E · Partido V</span><span class="votes">154</span><span class="rank">3º</span><span>Concorrente F · Partido U</span><span class="votes">97</span></div></details>
+        </article>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

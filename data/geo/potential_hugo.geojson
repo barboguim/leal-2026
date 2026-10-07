@@ -1,0 +1,406 @@
+{
+  "type": "FeatureCollection",
+  "name": "potential_hugo",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "nr_local": "1490",
+        "nm_local": "IGREJA BATISTA DO FONSECA",
+        "bairro": "FONSECA",
+        "pct_share": 0.3,
+        "similarity_score": 91.9,
+        "rank": 1,
+        "maior_semelhanca": "% Mulheres, % Jovens 16-24",
+        "ano": 2022
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -43.0865383,
+          -22.8810878
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nr_local": "1465",
+        "nm_local": "CENTRO UNIVERSITÁRIO ANHANGUERA (ANTIGO PLÍNIO LEITE)",
+        "bairro": "CENTRO",
+        "pct_share": 0.2,
+        "similarity_score": 91.5,
+        "rank": 2,
+        "maior_semelhanca": "% Adultos 25-59, % Mulheres",
+        "ano": 2022
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -43.1245632,
+          -22.8869267
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nr_local": "1678",
+        "nm_local": "LICEU NILO PEÇANHA",
+        "bairro": "CENTRO",
+        "pct_share": 0.3,
+        "similarity_score": 91.2,
+        "rank": 3,
+        "maior_semelhanca": "% Mulheres, % 60+",
+        "ano": 2022
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -43.1165611,
+          -22.8935707
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nr_local": "1104",
+        "nm_local": "ESCOLA MUNICIPAL ALTIVO CESAR",
+        "bairro": "BARRETO",
+        "pct_share": 0.3,
+        "similarity_score": 90.7,
+        "rank": 4,
+        "maior_semelhanca": "% Mulheres, % Ensino Medio",
+        "ano": 2022
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -43.0995714,
+          -22.8645343
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nr_local": "1651",
+        "nm_local": "PH COLÉGIO",
+        "bairro": "ICARAÍ",
+        "pct_share": 0.3,
+        "similarity_score": 89,
+        "rank": 5,
+        "maior_semelhanca": "% 60+, % Mulheres",
+        "ano": 2022
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -43.1110377,
+          -22.9006508
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nr_local": "1082",
+        "nm_local": "UMEI DR PAULO CESAR DE ALMEIDA PIMENTEL",
+        "bairro": "ITAIPU",
+        "pct_share": 0.3,
+        "similarity_score": 88.9,
+        "rank": 6,
+        "maior_semelhanca": "% 60+, % Ensino Medio",
+        "ano": 2022
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -43.0327165,
+          -22.9614459
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nr_local": "1015",
+        "nm_local": "INSTITUTO JCA",
+        "bairro": "SANTA BARBARA",
+        "pct_share": 0.2,
+        "similarity_score": 88.7,
+        "rank": 7,
+        "maior_semelhanca": "% Adultos 25-59, % Mulheres",
+        "ano": 2022
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -43.0585179,
+          -22.882301
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nr_local": "1457",
+        "nm_local": "ÁGUAS DE NITEROI",
+        "bairro": "CENTRO",
+        "pct_share": 0.3,
+        "similarity_score": 88.5,
+        "rank": 8,
+        "maior_semelhanca": "% Mulheres, % Ate Fundamental",
+        "ano": 2022
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -43.1141378,
+          -22.8915411
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nr_local": "1074",
+        "nm_local": "COLEGIO ESTADUAL PAULO ASSIS RIBEIRO",
+        "bairro": "BADU",
+        "pct_share": 0.3,
+        "similarity_score": 88,
+        "rank": 9,
+        "maior_semelhanca": "% Ate Fundamental, % Jovens 16-24",
+        "ano": 2022
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -43.0573891,
+          -22.9068537
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nr_local": "1635",
+        "nm_local": "ESCOLA MUNICIPAL DOM JOSÉ PEREIRA ALVES",
+        "bairro": "FONSECA",
+        "pct_share": 0.3,
+        "similarity_score": 86.8,
+        "rank": 10,
+        "maior_semelhanca": "% Mulheres, % Adultos 25-59",
+        "ano": 2022
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -43.0920686,
+          -22.8783038
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nr_local": "1554",
+        "nm_local": "JARDIM ESCOLA GIRASSÓIS",
+        "bairro": "LARGO DA BATALHA",
+        "pct_share": 0.2,
+        "similarity_score": 85.3,
+        "rank": 11,
+        "maior_semelhanca": "% Mulheres, % Adultos 25-59",
+        "ano": 2022
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -43.0652722,
+          -22.9077414
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nr_local": "1597",
+        "nm_local": "COLÉGIO PONTO DE ENSINO",
+        "bairro": "ICARAÍ",
+        "pct_share": 0.1,
+        "similarity_score": 85,
+        "rank": 12,
+        "maior_semelhanca": "% Jovens 16-24, % Mulheres",
+        "ano": 2022
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -43.1095209,
+          -22.9092421
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nr_local": "1023",
+        "nm_local": "PAROQUIA DE SAO JOAO BATISTA",
+        "bairro": "TENENTE JARDIM",
+        "pct_share": 0.3,
+        "similarity_score": 84.5,
+        "rank": 13,
+        "maior_semelhanca": "% Mulheres, % Adultos 25-59",
+        "ano": 2022
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -43.0827273,
+          -22.8639855
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nr_local": "1570",
+        "nm_local": "IGREJA DO SANTUARIO NACIONAL DAS ALMAS",
+        "bairro": "ICARAÍ",
+        "pct_share": 0.3,
+        "similarity_score": 84.4,
+        "rank": 14,
+        "maior_semelhanca": "% Mulheres, % Jovens 16-24",
+        "ano": 2022
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -43.1107182,
+          -22.9004522
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nr_local": "1430",
+        "nm_local": "COLEGIO ESTADUAL AURELINO LEAL",
+        "bairro": "INGÁ",
+        "pct_share": 0.2,
+        "similarity_score": 82.5,
+        "rank": 15,
+        "maior_semelhanca": "% 60+, % Jovens 16-24",
+        "ano": 2022
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -43.1254512,
+          -22.9033321
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nr_local": "1287",
+        "nm_local": "ESCOLA MUNICIPAL PROF MARCOS WALDEMAR DE FREITAS REIS",
+        "bairro": "ITAIPU",
+        "pct_share": 0.1,
+        "similarity_score": 80.4,
+        "rank": 16,
+        "maior_semelhanca": "% Ensino Medio, % Mulheres",
+        "ano": 2022
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -43.0330724,
+          -22.9615628
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nr_local": "1686",
+        "nm_local": "COLÉGIO DA POLÍCIA MILITAR",
+        "bairro": "FONSECA",
+        "pct_share": 0.2,
+        "similarity_score": 78.8,
+        "rank": 17,
+        "maior_semelhanca": "% Mulheres, % Jovens 16-24",
+        "ano": 2022
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -43.0820149,
+          -22.8818063
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nr_local": "1198",
+        "nm_local": "CIEP 448 RUY FRAZÃO SOARES",
+        "bairro": "ITAIPU",
+        "pct_share": 0.1,
+        "similarity_score": 78.4,
+        "rank": 18,
+        "maior_semelhanca": "% Mulheres, % Jovens 16-24",
+        "ano": 2022
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -43.0092644,
+          -22.9356576
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nr_local": "1260",
+        "nm_local": "INSTITUTO ABEL",
+        "bairro": "ICARAÍ",
+        "pct_share": 0.3,
+        "similarity_score": 77,
+        "rank": 19,
+        "maior_semelhanca": "% Mulheres, % Adultos 25-59",
+        "ano": 2022
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -43.1094942,
+          -22.9004168
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nr_local": "1325",
+        "nm_local": "ESCOLA MUNICIPAL SÍTIO DO IPÊ",
+        "bairro": "MARIA PAULA",
+        "pct_share": 0.3,
+        "similarity_score": 76.8,
+        "rank": 20,
+        "maior_semelhanca": "% Adultos 25-59, % Mulheres",
+        "ano": 2022
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -43.0267087,
+          -22.8821134
+        ]
+      }
+    }
+  ]
+}

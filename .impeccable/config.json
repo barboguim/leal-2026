@@ -1,0 +1,44 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "side-tab",
+        "value": "border-left",
+        "files": [
+          "app-web/src/index.css"
+        ],
+        "createdAt": "2026-08-18T15:02:24.505Z",
+        "reason": "user confirmed: defer to the dedicated design/consolidation pass rather than patch index.css piecemeal (2026-08-18)"
+      },
+      {
+        "rule": "codex-grid-background",
+        "value": "*",
+        "files": [
+          "design-mockups.html"
+        ],
+        "createdAt": "2026-08-18T22:20:22.848Z",
+        "reason": "grid lines are on .map, the basemap placeholder standing in for real Leaflet/CartoDB tiles -- rule's own guidance exempts actual map surfaces"
+      },
+      {
+        "rule": "overused-font",
+        "value": "fraunces",
+        "files": [
+          "design-mockups.html"
+        ],
+        "createdAt": "2026-08-18T23:03:31.438Z",
+        "reason": "explicitly named in DESIGN2.md as the chosen editorial serif (GT Alpina substitute, optical-axis carved quality, free/Google-hosted) -- governing design contract, not an unreviewed pick"
+      },
+      {
+        "rule": "overused-font",
+        "value": "geist mono",
+        "files": [
+          "design-mockups.html"
+        ],
+        "createdAt": "2026-08-19T14:31:47.111Z",
+        "reason": "DESIGN2.md SS3.1 pins Geist Mono explicitly for tabular numeric figures (vote counts/%/years); required, not a default AI pick"
+      }
+    ]
+  }
+}

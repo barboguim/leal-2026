@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LEAL — Mapa Eleitoral Niterói</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: #1a1a2e; color: #e0e0e0; }
+
+#map { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 1; }
+
+#panel {
+  position: absolute; top: 12px; left: 12px; z-index: 1000;
+  background: rgba(20, 20, 40, 0.92); backdrop-filter: blur(8px);
+  border-radius: 10px; padding: 16px; width: 320px;
+  border: 1px solid rgba(255,255,255,0.08);
+  max-height: calc(100vh - 24px); overflow-y: auto;
+}
+
+#panel h1 { font-size: 18px; font-weight: 700; margin-bottom: 2px; color: #fff; }
+#panel .subtitle { font-size: 11px; color: #888; margin-bottom: 14px; }
+
+.section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #666; margin: 14px 0 6px; }
+
+.layer-row {
+  display: flex; align-items: center; gap: 8px; padding: 6px 8px;
+  border-radius: 6px; cursor: pointer; transition: background 0.15s;
+  margin-bottom: 2px;
+}
+.layer-row:hover { background: rgba(255,255,255,0.06); }
+.layer-row input { cursor: pointer; }
+.layer-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.delta-dot { background: linear-gradient(90deg, #d94a4a, #d8d8ce, #55b96a); }
+.layer-label { font-size: 13px; flex: 1; }
+.layer-count { font-size: 12px; color: #888; font-variant-numeric: tabular-nums; }
+.control-grid { display: grid; gap: 6px; }
+.control-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.control-select {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.04);
+  color: #e0e0e0;
+  font-size: 12px;
+}
+.control-select:focus { outline: none; border-color: rgba(255,255,255,0.32); }
+.control-select option { background: #1a1a2e; color: #e0e0e0; }
+.control-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 2px 0;
+  font-size: 12px;
+  color: #c9c9d1;
+}
+.control-note { font-size: 11px; color: #888; line-height: 1.45; margin-top: 4px; }
+
+.year-bar { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+.year-btn {
+  padding: 4px 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.15);
+  background: transparent; color: #aaa; font-size: 12px; cursor: pointer;
+  transition: all 0.15s;
+}
+.year-btn:hover { border-color: rgba(255,255,255,0.3); color: #fff; }
+.year-btn.active { background: rgba(255,255,255,0.15); color: #fff; border-color: rgba(255,255,255,0.3); font-weight: 600; }
+.year-btn.municipal::before, .year-btn.federal::before {
+  content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  margin-right: 5px; vertical-align: middle;
+}
+.year-btn.municipal::before { background: #2dd4bf; }
+.year-btn.federal::before { background: #a78bfa; }
+.year-type-legend { display: flex; align-items: center; gap: 12px; margin-top: 4px; font-size: 10px; color: #888; }
+.year-type-legend .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+
+#stats {
+  margin-top: 14px; padding: 10px; background: rgba(255,255,255,0.04);
+  border-radius: 6px; font-size: 12px; line-height: 1.6;
+}
+#stats .stat-val { font-weight: 600; color: #fff; font-variant-numeric: tabular-nums; }
+.delta-legend { display: flex; align-items: center; gap: 8px; margin-top: 8px; color: #888; font-size: 11px; }
+.delta-scale { height: 6px; flex: 1; border-radius: 999px; background: linear-gradient(90deg, #d94a4a, #d8d8ce, #55b96a); }
+
+.leaflet-popup-content-wrapper {
+  background: rgba(20, 20, 40, 0.95) !important;
+  color: #e0e0e0 !important; border-radius: 8px !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+}
+.leaflet-popup-tip { background: rgba(20, 20, 40, 0.95) !important; }
+.leaflet-popup-content { font-size: 13px !important; line-height: 1.5 !important; }
+.popup-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; color: #fff; }
+.popup-bairro { font-size: 11px; color: #888; margin-bottom: 8px; }
+.popup-row { display: flex; justify-content: space-between; padding: 2px 0; }
+.popup-label { color: #aaa; }
+.popup-val { font-weight: 600; font-variant-numeric: tabular-nums; }
+.popup-competitors { margin-top: 6px; padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.1); }
+.popup-competitors summary { cursor: pointer; color: #aaa; font-size: 12px; outline: none; }
+.popup-competitors[open] summary { margin-bottom: 4px; }
+
+#compare-panel {
+  position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
+  z-index: 1000; background: rgba(20, 20, 40, 0.92); backdrop-filter: blur(8px);
+  border-radius: 10px; padding: 12px 20px; border: 1px solid rgba(255,255,255,0.08);
+  font-size: 13px; display: none; text-align: center;
+}
+
+@media (max-width: 640px) {
+  #panel { width: calc(100vw - 24px); max-height: 52vh; }
+  #compare-panel { left: 12px; right: 12px; bottom: 12px; transform: none; overflow-x: auto; }
+}
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div id="panel">
+  <h1>LEAL</h1>
+  <div class="subtitle">Mapa Eleitoral — Niterói</div>
+
+  <div class="section-title">Camadas</div>
+  <label class="layer-row">
+    <input type="checkbox" id="chk-hugo" checked>
+    <span class="layer-dot" style="background: #4a90d9;"></span>
+    <span class="layer-label">Hugo Leal</span>
+    <span class="layer-count" id="count-hugo">—</span>
+  </label>
+  <label class="layer-row">
+    <input type="checkbox" id="chk-felipe" checked>
+    <span class="layer-dot" style="background: #50c878;"></span>
+    <span class="layer-label">Felipe Peixoto</span>
+    <span class="layer-count" id="count-felipe">—</span>
+  </label>
+  <label class="layer-row">
+    <input type="checkbox" id="chk-psd">
+    <span class="layer-dot" style="background: #e8a838;"></span>
+    <span class="layer-label">PSD (total)</span>
+    <span class="layer-count" id="count-psd">—</span>
+  </label>
+
+  <div class="section-title">Ano</div>
+  <div class="year-bar" id="year-bar"></div>
+  <div class="year-type-legend">
+    <span><span class="dot" style="background:#2dd4bf;"></span>Municipal</span>
+    <span><span class="dot" style="background:#a78bfa;"></span>Federal</span>
+  </div>
+
+  <div class="section-title">Deltas</div>
+  <label class="layer-row">
+    <input type="checkbox" id="chk-delta" checked>
+    <span class="layer-dot delta-dot"></span>
+    <span class="layer-label">Variacao por local</span>
+    <span class="layer-count" id="count-delta">-</span>
+  </label>
+  <div class="year-bar" id="pair-bar"></div>
+  <div class="year-bar" id="delta-metric-bar"></div>
+  <div class="delta-legend"><span>perdeu</span><span class="delta-scale"></span><span>ganhou</span></div>
+
+  <div class="section-title">Regiao / Bairro</div>
+  <div class="control-grid">
+    <div class="control-row">
+      <select id="region-select" class="control-select">
+        <option value="all">Todas as regioes</option>
+      </select>
+      <select id="bairro-select" class="control-select">
+        <option value="all">Todos os bairros</option>
+      </select>
+    </div>
+    <label class="control-toggle">
+      <input type="checkbox" id="chk-region-boundaries" checked>
+      <span>Mostrar limites das regioes</span>
+    </label>
+    <label class="control-toggle">
+      <input type="checkbox" id="chk-bairro-boundaries">
+      <span>Mostrar limites dos bairros</span>
+    </label>
+  </div>
+  <div class="control-note">Os filtros usam os limites oficiais do Plano Diretor de Niteroi.</div>
+
+  <div id="stats"></div>
+</div>
+
+<div id="compare-panel"></div>
+
+<script src="data.js?v=3"></script>
+<script>
+const COLORS = {
+  hugo_leal: '#4a90d9',
+  felipe_peixoto: '#50c878',
+  psd: '#e8a838',
+  deltaLoss: '#d94a4a',
+  deltaNeutral: '#d8d8ce',
+  deltaGain: '#55b96a',
+};
+
+const LABELS = {
+  hugo_leal: 'Hugo Leal',
+  felipe_peixoto: 'Felipe Peixoto',
+  psd: 'PSD',
+};
+
+const BASE_KEYS = ['hugo_leal', 'felipe_peixoto', 'psd'];
+const DELTA_METRICS = {
+  hugo: { label: 'Hugo', field: 'delta_hugo' },
+  felipe: { label: 'Felipe', field: 'delta_felipe' },
+  psd: { label: 'PSD', field: 'delta_psd' },
+};
+
+const COMPETITOR_LAYER_BY_METRIC = { hugo: 'hugo_leal', felipe: 'felipe_peixoto' };
+
+function findYearLocalFeature(layerKey, ano, nrLocal) {
+  const fc = DATA[layerKey];
+  if (!fc) return null;
+  return fc.features.find(
+    f => f.properties.ano === ano && String(f.properties.nr_local) === String(nrLocal)
+  ) || null;
+}
+
+function competitorRows(props) {
+  let rows = '';
+  for (let i = 1; i <= 3; i++) {
+    const nome = props[`top${i}_nome`];
+    if (!nome) continue;
+    const partido = props[`top${i}_partido`] || '-';
+    const votos = Number(props[`top${i}_votos`] || 0).toLocaleString('pt-BR');
+    rows += `<div class="popup-row"><span class="popup-label">${i}º</span><span class="popup-val">${nome} (${partido}) — ${votos}</span></div>`;
+  }
+  return rows || '<div class="popup-row"><span class="popup-label">Sem dados</span></div>';
+}
+
+function buildCompetitorSection(title, props) {
+  return `<details class="popup-competitors"><summary>${title}</summary>${competitorRows(props)}</details>`;
+}
+const REGION_SERVICE = 'https://geo.niteroi.rj.gov.br/arcgis/rest/services/Aplicacoes/PD_MAPA1_mapservice/MapServer';
+const REGION_URL = `${REGION_SERVICE}/10/query?where=1%3D1&outFields=tx_nome,si_nome&returnGeometry=true&f=geojson&outSR=4326`;
+const BAIRRO_URL = `${REGION_SERVICE}/20/query?where=1%3D1&outFields=tx_nome&returnGeometry=true&f=geojson&outSR=4326`;
+
+const ALL_YEARS = [...new Set(
+  BASE_KEYS.flatMap(key =>
+    (DATA[key]?.features || [])
+      .map(f => Number(f.properties.ano))
+      .filter(Number.isFinite)
+  )
+)].sort((a, b) => a - b);
+
+const DELTA_PAIRS = [...new Set(
+  (DATA.vote_deltas?.features || []).map(f => f.properties.pair)
+)].sort((a, b) => Number(a.slice(0, 4)) - Number(b.slice(0, 4)));
+
+let selectedYear = ALL_YEARS.includes(2022) ? 2022 : (ALL_YEARS[ALL_YEARS.length - 1] || null);
+let selectedPair = DELTA_PAIRS.includes('2022-2024')
+  ? '2022-2024'
+  : (DELTA_PAIRS[DELTA_PAIRS.length - 1] || null);
+let selectedDeltaMetric = 'hugo';
+let selectedRegion = 'all';
+let selectedBairro = 'all';
+let regionFeatures = [];
+let bairroFeatures = [];
+let regionLayer = null;
+let bairroLayer = null;
+let layers = {};
+let map;
+
+async function init() {
+  map = L.map('map', {
+    center: [-22.9017, -43.0783],
+    zoom: 13,
+    zoomControl: false,
+  });
+
+  L.control.zoom({ position: 'topright' }).addTo(map);
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+    maxZoom: 19,
+  }).addTo(map);
+
+  bindGeoControls();
+
+  try {
+    await loadMunicipalBoundaries();
+  } catch (err) {
+    console.warn('boundary load failed', err);
+  }
+
+  populateGeoFilters();
+  buildYearBar();
+  buildPairBar();
+  buildMetricBar();
+  buildBoundaryLayers();
+  buildLayers();
+  updateStats();
+
+  document.getElementById('chk-hugo').addEventListener('change', toggleLayer);
+  document.getElementById('chk-felipe').addEventListener('change', toggleLayer);
+  document.getElementById('chk-psd').addEventListener('change', toggleLayer);
+  document.getElementById('chk-delta').addEventListener('change', toggleLayer);
+  document.getElementById('chk-region-boundaries').addEventListener('change', toggleLayer);
+  document.getElementById('chk-bairro-boundaries').addEventListener('change', toggleLayer);
+  document.getElementById('region-select').addEventListener('change', onGeoFilterChange);
+  document.getElementById('bairro-select').addEventListener('change', onGeoFilterChange);
+}
+
+function buildYearBar() {
+  const bar = document.getElementById('year-bar');
+  bar.innerHTML = '';
+
+  // "All" button
+  const allBtn = document.createElement('button');
+  allBtn.className = 'year-btn' + (selectedYear === null ? ' active' : '');
+  allBtn.textContent = 'Todos';
+  allBtn.onclick = () => { selectedYear = null; buildYearBar(); buildLayers(); updateStats(); };
+  bar.appendChild(allBtn);
+
+  ALL_YEARS.forEach(y => {
+    const btn = document.createElement('button');
+    btn.className = 'year-btn' + (selectedYear === y ? ' active' : '') + ' ' + electionType(y).toLowerCase();
+    btn.textContent = y;
+    btn.title = electionType(y);
+    btn.onclick = () => { selectedYear = y; buildYearBar(); buildLayers(); updateStats(); };
+    bar.appendChild(btn);
+  });
+}
+
+function buildPairBar() {
+  const bar = document.getElementById('pair-bar');
+  bar.innerHTML = '';
+
+  DELTA_PAIRS.forEach(pair => {
+    const btn = document.createElement('button');
+    btn.className = 'year-btn' + (selectedPair === pair ? ' active' : '');
+    btn.textContent = pair;
+    btn.onclick = () => {
+      selectedPair = pair;
+      buildPairBar();
+      buildLayers();
+      updateStats();
+    };
+    bar.appendChild(btn);
+  });
+}
+
+function buildMetricBar() {
+  const bar = document.getElementById('delta-metric-bar');
+  bar.innerHTML = '';
+
+  Object.entries(DELTA_METRICS).forEach(([key, metric]) => {
+    const btn = document.createElement('button');
+    btn.className = 'year-btn' + (selectedDeltaMetric === key ? ' active' : '');
+    btn.textContent = metric.label;
+    btn.onclick = () => {
+      selectedDeltaMetric = key;
+      buildMetricBar();
+      buildLayers();
+      updateStats();
+    };
+    bar.appendChild(btn);
+  });
+}
+
+function bindGeoControls() {
+  document.getElementById('region-select').disabled = true;
+  document.getElementById('bairro-select').disabled = true;
+}
+
+async function loadMunicipalBoundaries() {
+  const [regions, bairros] = await Promise.all([
+    fetchGeoJson(REGION_URL),
+    fetchGeoJson(BAIRRO_URL),
+  ]);
+  regionFeatures = regions.features || [];
+  bairroFeatures = bairros.features || [];
+  annotateGeoFields();
+}
+
+async function fetchGeoJson(url) {
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error(`Failed to load ${url}: ${resp.status}`);
+  return resp.json();
+}
+
+function normalizeText(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .trim();
+}
+
+function electionType(year) {
+  return Number(year) % 4 === 0 ? 'Municipal' : 'Federal';
+}
+
+function electionPairLabel(startYear, endYear) {
+  return `${electionType(startYear)} -> ${electionType(endYear)}`;
+}
+
+function featureName(feature) {
+  const props = feature?.properties || {};
+  return props.tx_nome || props.si_nome || props.Nome_Ecid || props.nome || props.name || '';
+}
+
+function pointInRing(point, ring) {
+  const x = point[0];
+  const y = point[1];
+  let inside = false;
+
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0];
+    const yi = ring[i][1];
+    const xj = ring[j][0];
+    const yj = ring[j][1];
+    const intersect = ((yi > y) !== (yj > y)) &&
+      (x < ((xj - xi) * (y - yi)) / ((yj - yi) || 1e-12) + xi);
+    if (intersect) inside = !inside;
+  }
+
+  return inside;
+}
+
+function pointInGeometry(point, geometry) {
+  if (!geometry) return false;
+  if (geometry.type === 'Polygon') {
+    const rings = geometry.coordinates || [];
+    if (!rings.length) return false;
+    if (!pointInRing(point, rings[0])) return false;
+    for (let i = 1; i < rings.length; i++) {
+      if (pointInRing(point, rings[i])) return false;
+    }
+    return true;
+  }
+
+  if (geometry.type === 'MultiPolygon') {
+    return (geometry.coordinates || []).some(poly => pointInGeometry(point, { type: 'Polygon', coordinates: poly }));
+  }
+
+  return false;
+}
+
+function findContainingName(point, features) {
+  for (const feature of features) {
+    if (pointInGeometry(point, feature.geometry)) {
+      return normalizeText(featureName(feature));
+    }
+  }
+  return '';
+}
+
+function annotateGeoFields() {
+  const assign = (feature) => {
+    if (!feature?.geometry) return;
+    const point = feature.geometry.coordinates;
+    feature.properties.__region = findContainingName(point, regionFeatures);
+    feature.properties.__bairro_geo = findContainingName(point, bairroFeatures);
+  };
+
+  BASE_KEYS.forEach(key => {
+    (DATA[key]?.features || []).forEach(assign);
+  });
+  (DATA.vote_deltas?.features || []).forEach(assign);
+}
+
+function populateGeoFilters() {
+  const regionSelect = document.getElementById('region-select');
+  const bairroSelect = document.getElementById('bairro-select');
+
+  const regions = [
+    ...new Map(regionFeatures.map(feature => [normalizeText(featureName(feature)), featureName(feature)])).entries(),
+  ].sort((a, b) => a[1].localeCompare(b[1], 'pt-BR'));
+
+  const bairros = [
+    ...new Map(bairroFeatures.map(feature => [normalizeText(featureName(feature)), featureName(feature)])).entries(),
+  ].sort((a, b) => a[1].localeCompare(b[1], 'pt-BR'));
+
+  regionSelect.innerHTML = '<option value="all">Todas as regioes</option>' + regions
+    .map(([, label]) => `<option value="${label}">${label}</option>`)
+    .join('');
+  bairroSelect.innerHTML = '<option value="all">Todos os bairros</option>' + bairros
+    .map(([, label]) => `<option value="${label}">${label}</option>`)
+    .join('');
+
+  regionSelect.disabled = false;
+  bairroSelect.disabled = false;
+}
+
+function onGeoFilterChange() {
+  selectedRegion = document.getElementById('region-select').value;
+  selectedBairro = document.getElementById('bairro-select').value;
+  buildBoundaryLayers();
+  buildLayers();
+  updateStats();
+}
+
+function getRadius(votes, key) {
+  if (key === 'hugo_leal') return Math.max(4, Math.sqrt(votes) * 2.5);
+  return Math.max(4, Math.sqrt(votes) * 0.8);
+}
+
+function getDeltaRadius(delta) {
+  const absDelta = Math.abs(Number(delta) || 0);
+  if (absDelta === 0) return 4;
+  return Math.max(5, Math.min(28, Math.sqrt(absDelta) * 0.72));
+}
+
+function passesGeoFilter(props) {
+  const region = normalizeText(selectedRegion);
+  const bairro = normalizeText(selectedBairro);
+  const featureRegion = normalizeText(props.__region || '');
+  const featureBairro = normalizeText(props.__bairro_geo || props.bairro || '');
+
+  if (region !== 'ALL' && featureRegion !== region) return false;
+  if (bairro !== 'ALL' && featureBairro !== bairro) return false;
+  return true;
+}
+
+function buildBoundaryLayers() {
+  if (regionLayer) {
+    map.removeLayer(regionLayer);
+    regionLayer = null;
+  }
+  if (bairroLayer) {
+    map.removeLayer(bairroLayer);
+    bairroLayer = null;
+  }
+
+  const showRegions = document.getElementById('chk-region-boundaries').checked;
+  const showBairros = document.getElementById('chk-bairro-boundaries').checked;
+  const regionName = normalizeText(selectedRegion);
+  const bairroName = normalizeText(selectedBairro);
+
+  if (showRegions && regionFeatures.length) {
+    const feats = selectedRegion === 'all'
+      ? regionFeatures
+      : regionFeatures.filter(f => normalizeText(featureName(f)) === regionName);
+    regionLayer = L.geoJSON({ type: 'FeatureCollection', features: feats }, {
+      style: (feature) => ({
+        color: normalizeText(featureName(feature)) === regionName ? '#ffffff' : '#7f8aa6',
+        weight: normalizeText(featureName(feature)) === regionName ? 2 : 1,
+        opacity: 0.95,
+        fillOpacity: 0.02,
+      }),
+      onEachFeature: (feature, layer) => {
+        layer.bindTooltip(featureName(feature), { sticky: true, direction: 'top' });
+      },
+    }).addTo(map);
+  }
+
+  if (showBairros && bairroFeatures.length) {
+    const feats = selectedBairro === 'all'
+      ? bairroFeatures
+      : bairroFeatures.filter(f => normalizeText(featureName(f)) === bairroName);
+    bairroLayer = L.geoJSON({ type: 'FeatureCollection', features: feats }, {
+      style: (feature) => ({
+        color: normalizeText(featureName(feature)) === bairroName ? '#ffffff' : '#c7b56a',
+        weight: normalizeText(featureName(feature)) === bairroName ? 2 : 1,
+        opacity: 0.8,
+        fillOpacity: 0.01,
+      }),
+      onEachFeature: (feature, layer) => {
+        layer.bindTooltip(featureName(feature), { sticky: true, direction: 'top' });
+      },
+    }).addTo(map);
+  }
+}
+
+function buildLayers() {
+  Object.values(layers).forEach(l => map.removeLayer(l));
+  layers = {};
+  ['hugo', 'felipe', 'psd', 'delta'].forEach(id => {
+    const el = document.getElementById('count-' + id);
+    if (el) el.textContent = '-';
+  });
+
+  const order = ['psd', 'felipe_peixoto', 'hugo_leal'];
+  const checkboxIds = {
+    psd: 'chk-psd',
+    felipe_peixoto: 'chk-felipe',
+    hugo_leal: 'chk-hugo',
+  };
+  const countIds = {
+    psd: 'count-psd',
+    felipe_peixoto: 'count-felipe',
+    hugo_leal: 'count-hugo',
+  };
+
+  order.forEach(key => {
+    if (!DATA[key] || !document.getElementById(checkboxIds[key]).checked) return;
+
+    const fc = DATA[key];
+    const filtered = (selectedYear
+      ? fc.features.filter(f => f.properties.ano === selectedYear)
+      : fc.features
+    ).filter(f => passesGeoFilter(f.properties));
+
+    const layer = L.layerGroup();
+
+    // If showing all years, aggregate by nr_local
+    const points = selectedYear ? filtered : aggregateByLocal(filtered);
+
+    points.forEach(f => {
+      const p = f.properties;
+      const [lng, lat] = f.geometry.coordinates;
+      const votes = p.QT_VOTOS;
+
+      const circle = L.circleMarker([lat, lng], {
+        radius: getRadius(votes, key),
+        fillColor: COLORS[key],
+        fillOpacity: 0.55,
+        color: COLORS[key],
+        weight: 1,
+        opacity: 0.8,
+      });
+
+      circle.bindPopup(buildPopup(p, key));
+      circle.on('mouseover', function() {
+        this.setStyle({ fillOpacity: 0.85, weight: 2 });
+      });
+      circle.on('mouseout', function() {
+        this.setStyle({ fillOpacity: 0.55, weight: 1 });
+      });
+
+      circle.on('click', () => showCompare(p, f.geometry.coordinates));
+
+      layer.addLayer(circle);
+    });
+
+    layer.addTo(map);
+    layers[key] = layer;
+
+    // Update count
+    const totalVotes = points.reduce((s, f) => s + f.properties.QT_VOTOS, 0);
+    document.getElementById(countIds[key]).textContent = totalVotes.toLocaleString('pt-BR');
+  });
+
+  buildDeltaLayer();
+}
+
+function interpolateChannel(a, b, t) {
+  return Math.round(a + (b - a) * t);
+}
+
+function interpolateColor(start, end, t) {
+  return `rgb(${interpolateChannel(start[0], end[0], t)}, ${interpolateChannel(start[1], end[1], t)}, ${interpolateChannel(start[2], end[2], t)})`;
+}
+
+function getDivergingColor(value, maxAbs) {
+  const neutral = [216, 216, 206];
+  const gain = [85, 185, 106];
+  const loss = [217, 74, 74];
+  const t = Math.min(1, Math.sqrt(Math.abs(value) / Math.max(maxAbs, 1)));
+  return value >= 0 ? interpolateColor(neutral, gain, t) : interpolateColor(neutral, loss, t);
+}
+
+function buildDeltaLayer() {
+  const countEl = document.getElementById('count-delta');
+  if (!DATA.vote_deltas || !selectedPair || !document.getElementById('chk-delta').checked) {
+    countEl.textContent = '-';
+    return;
+  }
+
+  const metric = DELTA_METRICS[selectedDeltaMetric];
+  const feats = DATA.vote_deltas.features
+    .filter(f => f.properties.pair === selectedPair)
+    .filter(f => passesGeoFilter(f.properties));
+  const maxAbs = Math.max(1, ...feats.map(f => Math.abs(Number(f.properties[metric.field]) || 0)));
+  const layer = L.layerGroup();
+
+  feats.forEach(f => {
+    const p = f.properties;
+    const [lng, lat] = f.geometry.coordinates;
+    const delta = Number(p[metric.field]) || 0;
+    const color = getDivergingColor(delta, maxAbs);
+
+    const circle = L.circleMarker([lat, lng], {
+      radius: getDeltaRadius(delta),
+      fillColor: color,
+      fillOpacity: 0.78,
+      color,
+      weight: delta === 0 ? 1 : 2,
+      opacity: 0.95,
+    });
+
+    circle.bindPopup(buildDeltaPopup(p, metric, color));
+    circle.on('mouseover', function() {
+      this.setStyle({ fillOpacity: 0.95, weight: 3 });
+    });
+    circle.on('mouseout', function() {
+      this.setStyle({ fillOpacity: 0.78, weight: delta === 0 ? 1 : 2 });
+    });
+
+    layer.addLayer(circle);
+  });
+
+  layer.addTo(map);
+  layers.vote_deltas = layer;
+  const totalDelta = feats.reduce((sum, f) => sum + (Number(f.properties[metric.field]) || 0), 0);
+  countEl.textContent = formatSigned(totalDelta);
+}
+
+function aggregateByLocal(features) {
+  const byLocal = {};
+  features.forEach(f => {
+    const key = f.properties.nr_local;
+    if (!byLocal[key]) {
+      byLocal[key] = {
+        type: 'Feature',
+        geometry: f.geometry,
+        properties: {
+          ...f.properties,
+          QT_VOTOS: 0,
+          n_secoes: 0,
+          _years: {},
+        }
+      };
+    }
+    byLocal[key].properties.QT_VOTOS += f.properties.QT_VOTOS;
+    byLocal[key].properties.n_secoes = Math.max(byLocal[key].properties.n_secoes, f.properties.n_secoes);
+    byLocal[key].properties._years[f.properties.ano] = f.properties.QT_VOTOS;
+  });
+  return Object.values(byLocal);
+}
+
+function buildPopup(p, key) {
+  let html = `<div class="popup-title">${p.nm_local || 'Local ' + p.nr_local}</div>`;
+  html += `<div class="popup-bairro">${p.bairro || ''}</div>`;
+  html += `<div class="popup-row"><span class="popup-label">Candidato/Partido</span><span class="popup-val" style="color:${COLORS[key]}">${LABELS[key]}</span></div>`;
+
+  if (p._years) {
+    const years = Object.entries(p._years).sort((a, b) => a[0] - b[0]);
+    years.forEach(([y, v]) => {
+      html += `<div class="popup-row"><span class="popup-label">${y}</span><span class="popup-val">${v.toLocaleString('pt-BR')}</span></div>`;
+    });
+    html += `<div class="popup-row" style="border-top:1px solid rgba(255,255,255,0.1);margin-top:4px;padding-top:4px"><span class="popup-label">Total</span><span class="popup-val">${p.QT_VOTOS.toLocaleString('pt-BR')}</span></div>`;
+  } else {
+    html += `<div class="popup-row"><span class="popup-label">Ano</span><span class="popup-val">${p.ano}</span></div>`;
+    html += `<div class="popup-row"><span class="popup-label">Votos</span><span class="popup-val">${p.QT_VOTOS.toLocaleString('pt-BR')}</span></div>`;
+    html += `<div class="popup-row"><span class="popup-label">Secoes</span><span class="popup-val">${p.n_secoes}</span></div>`;
+    if (Object.values(COMPETITOR_LAYER_BY_METRIC).includes(key)) html += buildCompetitorSection('Concorrencia', p);
+  }
+  return html;
+}
+
+function formatSigned(value) {
+  const n = Math.round(Number(value) || 0);
+  return `${n > 0 ? '+' : ''}${n.toLocaleString('pt-BR')}`;
+}
+
+function formatPct(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '-';
+  return `${n > 0 ? '+' : ''}${n.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
+}
+
+function popupRow(label, value, color) {
+  const style = color ? ` style="color:${color}"` : '';
+  return `<div class="popup-row"><span class="popup-label">${label}</span><span class="popup-val"${style}>${value}</span></div>`;
+}
+
+function buildDeltaPopup(p, metric, color) {
+  let html = `<div class="popup-title">${p.nm_local || 'Local ' + p.nr_local}</div>`;
+  html += `<div class="popup-bairro">${p.bairro || ''}</div>`;
+  html += popupRow('Par', p.pair);
+  html += popupRow('Tipo de eleicao', p.tipo_par || electionPairLabel(p.ano_inicio, p.ano_fim));
+  html += popupRow(`Delta ${metric.label}`, formatSigned(p[metric.field]), color);
+  html += popupRow('Hugo', `${p.votos_hugo_inicio} -> ${p.votos_hugo_fim} (${formatSigned(p.delta_hugo)})`);
+  html += popupRow('Felipe', `${p.votos_felipe_inicio} -> ${p.votos_felipe_fim} (${formatSigned(p.delta_felipe)})`);
+  html += popupRow('PSD', `${p.votos_psd_inicio} -> ${p.votos_psd_fim} (${formatSigned(p.delta_psd)})`);
+  html += popupRow('Secoes', `${p.secoes_inicio || 0} -> ${p.secoes_fim || 0}`);
+  html += popupRow('Troca de secoes', formatPct((Number(p.secao_churn) || 0) * 100));
+  const moved = (Number(p.secoes_movidas_in) || 0) + (Number(p.secoes_movidas_out) || 0);
+  if (moved > 0) {
+    html += popupRow('Secoes com troca', `+${p.secoes_movidas_in || 0} / -${p.secoes_movidas_out || 0}`);
+  }
+  const competitorLayer = COMPETITOR_LAYER_BY_METRIC[selectedDeltaMetric];
+  if (competitorLayer) {
+    const startFeat = findYearLocalFeature(competitorLayer, p.ano_inicio, p.nr_local);
+    const endFeat = findYearLocalFeature(competitorLayer, p.ano_fim, p.nr_local);
+    html += buildCompetitorSection(`Concorrencia ${p.ano_inicio}`, startFeat ? startFeat.properties : {});
+    html += buildCompetitorSection(`Concorrencia ${p.ano_fim}`, endFeat ? endFeat.properties : {});
+  }
+  return html;
+}
+
+function showCompare(clickedProps, coords) {
+  const localId = clickedProps.nr_local;
+  const panel = document.getElementById('compare-panel');
+
+  const datasets = ['hugo_leal', 'felipe_peixoto', 'psd'];
+  let rows = [];
+
+  datasets.forEach(key => {
+    const fc = DATA[key];
+    const localFeats = fc.features.filter(f => f.properties.nr_local === localId);
+    if (localFeats.length === 0) return;
+
+    const byYear = {};
+    localFeats.forEach(f => { byYear[f.properties.ano] = f.properties.QT_VOTOS; });
+
+    rows.push({ key, byYear, total: localFeats.reduce((s, f) => s + f.properties.QT_VOTOS, 0) });
+  });
+
+  if (rows.length === 0) { panel.style.display = 'none'; return; }
+
+  const allYears = [...new Set(rows.flatMap(r => Object.keys(r.byYear)))].sort();
+
+  let html = `<div style="font-weight:700;margin-bottom:8px">${clickedProps.nm_local || 'Local ' + localId}</div>`;
+  html += '<table style="border-collapse:collapse;width:100%">';
+  html += '<tr><td></td>' + allYears.map(y => `<td style="padding:2px 8px;color:#888;font-size:11px;text-align:right">${y}</td>`).join('') + '</tr>';
+  rows.forEach(r => {
+    html += `<tr><td style="padding:2px 8px;color:${COLORS[r.key]};font-weight:600;white-space:nowrap">${LABELS[r.key]}</td>`;
+    allYears.forEach(y => {
+      const v = r.byYear[y];
+      html += `<td style="padding:2px 8px;text-align:right;font-variant-numeric:tabular-nums">${v ? v.toLocaleString('pt-BR') : '—'}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</table>';
+
+  panel.innerHTML = html;
+  panel.style.display = 'block';
+}
+
+function toggleLayer() {
+  buildBoundaryLayers();
+  buildLayers();
+  updateStats();
+}
+
+function updateStats() {
+  const el = document.getElementById('stats');
+  const year = selectedYear;
+  const regionLabel = selectedRegion === 'all' ? 'todas as regioes' : selectedRegion;
+  const bairroLabel = selectedBairro === 'all' ? 'todos os bairros' : selectedBairro;
+
+  let html = '';
+  if (year) {
+    html += `<div style="font-weight:600;margin-bottom:6px">Resumo ${year}</div>`;
+    html += `<div style="color:#888;margin-bottom:6px">${electionType(year)}</div>`;
+  } else {
+    html += `<div style="font-weight:600;margin-bottom:6px">Resumo (todos os anos)</div>`;
+  }
+  if (selectedRegion !== 'all' || selectedBairro !== 'all') {
+    html += `<div style="color:#888;margin-bottom:6px">${regionLabel} / ${bairroLabel}</div>`;
+  }
+
+  ['hugo_leal', 'felipe_peixoto', 'psd'].forEach(key => {
+    if (!DATA[key]) return;
+    const fc = DATA[key];
+    const feats = (year ? fc.features.filter(f => f.properties.ano === year) : fc.features)
+      .filter(f => passesGeoFilter(f.properties));
+    const total = feats.reduce((s, f) => s + f.properties.QT_VOTOS, 0);
+    const nLocais = new Set(feats.map(f => f.properties.nr_local)).size;
+
+    if (feats.length > 0) {
+      html += `<div style="margin-top:4px"><span style="color:${COLORS[key]}">${LABELS[key]}</span></div>`;
+      html += `<div class="popup-row"><span class="popup-label">Votos</span><span class="stat-val">${total.toLocaleString('pt-BR')}</span></div>`;
+      html += `<div class="popup-row"><span class="popup-label">Locais</span><span class="stat-val">${nLocais}</span></div>`;
+    }
+  });
+
+  if (DATA.vote_deltas && selectedPair && document.getElementById('chk-delta').checked) {
+    const metric = DELTA_METRICS[selectedDeltaMetric];
+    const feats = DATA.vote_deltas.features
+      .filter(f => f.properties.pair === selectedPair)
+      .filter(f => passesGeoFilter(f.properties));
+    const startTotal = feats.reduce((s, f) => s + (Number(f.properties[`votos_${selectedDeltaMetric}_inicio`]) || 0), 0);
+    const endTotal = feats.reduce((s, f) => s + (Number(f.properties[`votos_${selectedDeltaMetric}_fim`]) || 0), 0);
+    const total = feats.reduce((s, f) => s + (Number(f.properties[metric.field]) || 0), 0);
+    const gained = feats.reduce((s, f) => s + Math.max(Number(f.properties[metric.field]) || 0, 0), 0);
+    const lost = feats.reduce((s, f) => s + Math.max(-(Number(f.properties[metric.field]) || 0), 0), 0);
+
+    html += `<div style="margin-top:8px"><span style="color:${COLORS.deltaGain}">Delta ${metric.label} (${selectedPair})</span></div>`;
+    html += `<div style="color:#888;margin-bottom:6px">${electionPairLabel(feats[0]?.properties.ano_inicio || 0, feats[0]?.properties.ano_fim || 0)}</div>`;
+    html += `<div class="popup-row"><span class="popup-label">Inicio</span><span class="stat-val">${startTotal.toLocaleString('pt-BR')}</span></div>`;
+    html += `<div class="popup-row"><span class="popup-label">Fim</span><span class="stat-val">${endTotal.toLocaleString('pt-BR')}</span></div>`;
+    html += `<div class="popup-row"><span class="popup-label">Saldo</span><span class="stat-val">${formatSigned(total)}</span></div>`;
+    html += `<div class="popup-row"><span class="popup-label">Ganhos</span><span class="stat-val">${gained.toLocaleString('pt-BR')}</span></div>`;
+    html += `<div class="popup-row"><span class="popup-label">Perdas</span><span class="stat-val">${lost.toLocaleString('pt-BR')}</span></div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+// Click outside compare panel to close
+document.addEventListener('click', (e) => {
+  const cp = document.getElementById('compare-panel');
+  if (!cp.contains(e.target) && !e.target.closest('.leaflet-interactive')) {
+    cp.style.display = 'none';
+  }
+});
+
+init();
+</script>
+</body>
+</html>

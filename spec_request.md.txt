@@ -1,0 +1,20 @@
+The React migration is done. Now a new analytical spec — do NOT start coding, brainstorm and write the spec first via Superpowers.
+
+Problem: the current vote deltas are distorted because they treat three different situations identically as "0 votes": (1) candidate didn't run that year, (2) party/candidate didn't exist yet, (3) genuinely ran but got few votes. Example distortions: Felipe shows -6.919 in 2024 but he DIDN'T RUN in 2024; PSD shows 0 in 2010 but the party didn't exist yet (founded 2011). These produce fake "losses."
+
+Also, comparisons cross election types and cargos that aren't comparable. Felipe 2010 (24.639, likely deputado estadual - MUST confirm from TSE) vs Felipe 2012 (municipal, different scope) vs 2018/2022 are structurally different races with different vote ceilings. Hugo similarly runs different cargos across years.
+
+Required foundational fix - a candidacy matrix (new pipeline step, script 08): for each candidate/party × each year, confirmed from TSE consulta_cand registration files (NOT inferred): did they run, for which cargo, in which election type (municipal vs geral). First confirm we actually HAVE the consulta_cand files in raw data - if not, that's step zero.
+
+Then gate all deltas off that matrix:
+- Didn't run / didn't exist → N/A, no delta, and show N/A not 0 in the camadas legend
+- Deltas only computed within same election type AND same cargo
+- Cross-type comparison becomes an explicit opt-in context view, never the default
+
+PSD is a party not an individual - it fields multiple candidates across multiple cargos per election. The PSD number is a slate aggregate. Must break down: how many PSD candidates, for which cargos, top-3 most voted, total volume per election. The 2012→2016 drop (34.597→2.653) is likely a prefeito candidate present in 2012, absent in 2016 - the breakdown must make this visible or the PSD layer is uninterpretable.
+
+Popup redesign: replace "Candidato/Partido: [name]" with Nome · Partido · Cargo pretendido · Votos · % share (vote share needs total volume per local as denominator).
+
+Legend: "Geral" not "Federal" (general elections bundle federal + estadual).
+
+Scope this spec to: candidacy matrix, delta gating, PSD slate breakdown, popup redesign, vote share, legend fix. Explicitly OUT of scope for now (future specs): timeline slider UI, campaign finance data.
