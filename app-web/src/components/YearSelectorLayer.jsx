@@ -6,7 +6,7 @@ import EyeToggle from './EyeToggle.jsx';
 // appear on the map. Count = total Hugo votes for that year.
 
 export default function YearSelectorLayer({
-  visible, onToggleVisible, count,
+  visible, onToggleVisible,
   years, selectedYear, onYearChange,
 }) {
   return (
@@ -15,7 +15,6 @@ export default function YearSelectorLayer({
         <EyeToggle visible={visible} onToggle={onToggleVisible} label="Ano a ano" />
         <span className="dot" style={{ background: COLORS.hugo_leal }} />
         <span className="group-label">Ano a ano</span>
-        <span className="group-count">{count ?? '—'}</span>
       </summary>
 
       <div className="group-body">

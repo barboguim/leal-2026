@@ -9,7 +9,6 @@ import IntensityLegend from './components/IntensityLegend.jsx';
 import { useMapData } from './lib/useMapData.js';
 import { aggregateByLocal } from './lib/aggregate.js';
 import { DELTA_METRICS } from './lib/constants.js';
-import { computeQuantileBreaks } from './lib/visual.js';
 
 const HUGO = 'hugo_leal';
 
@@ -37,7 +36,15 @@ export default function App() {
         .filter(f => f.properties.delta_hugo !== null && f.properties.delta_hugo !== undefined)
         .map(f => f.properties.pair)
     );
-    return [...valid].sort((a, b) => Number(a.slice(0, 4)) - Number(b.slice(0, 4)));
+    // Keep only consecutive Geral-to-Geral pairs (4-year gap). The pipeline
+    // can emit cross-pairs like 2010-2018 when a candidate skips a cycle,
+    // but those confuse the "evolucao" story in the UI.
+    return [...valid]
+      .filter(p => {
+        const [a, b] = p.split('-').map(Number);
+        return b - a === 4;
+      })
+      .sort((a, b) => Number(a.slice(0, 4)) - Number(b.slice(0, 4)));
   }, [data]);
 
   const [selectedYear, setSelectedYear] = useState(null);
@@ -76,22 +83,24 @@ export default function App() {
   }
 
   // --- Markers (Ano a ano) --------------------------------------------------
-  // Compute per-local share of Hugo's total for the selected year, plus the
-  // quantile breaks that drive the heat palette. The breaks are shared by
-  // the markers and the legend so both tell the same story.
+  // share_pct = Hugo's share of VALID votes at that local for the cargo —
+  // "performance share", answers "where does Hugo do best?". Falls back to
+  // 0 when total_votos_validos is absent (older years before script 07, or
+  // locais where the raw TSE row was missing from the munzona dump).
   const hugoFC = data[HUGO];
   const yearFeats = (selectedYear ? hugoFC.features.filter(f => f.properties.ano === selectedYear) : hugoFC.features);
   const localPoints = selectedYear ? yearFeats : aggregateByLocal(yearFeats);
   const yearTotal = localPoints.reduce((s, f) => s + Number(f.properties.QT_VOTOS || 0), 0);
-  const featuresWithShare = localPoints.map(f => ({
-    ...f,
-    properties: {
-      ...f.properties,
-      share_pct: yearTotal > 0 ? (Number(f.properties.QT_VOTOS || 0) / yearTotal) * 100 : 0,
-    },
-  }));
-  const breaks = computeQuantileBreaks(featuresWithShare.map(f => f.properties.share_pct), 5);
-  const maxShare = featuresWithShare.reduce((m, f) => Math.max(m, f.properties.share_pct), 0);
+  const featuresWithShare = localPoints.map(f => {
+    const votos = Number(f.properties.QT_VOTOS || 0);
+    const validos = Number(f.properties.total_votos_validos || 0);
+    const share_pct = validos > 0 ? (votos / validos) * 100 : 0;
+    return { ...f, properties: { ...f.properties, share_pct } };
+  });
+  // Fixed-interval classes: 0-1, 1-2, 2-3, 3-4, 4%+. Across all five Hugo
+  // cycles the observed max is ~4.7%, so five 1-point bins cover the full
+  // range with round, legible edges — no quantile math, no mystery breaks.
+  const breaks = [1, 2, 3, 4];
 
   // --- Delta (Comparativo) --------------------------------------------------
   const metric = DELTA_METRICS.hugo;
@@ -130,8 +139,7 @@ export default function App() {
       <div id="panel">
         <div className="panel-header">
           <div>
-            <h1>Mapa eleitoral</h1>
-            <div className="subtitle">Hugo Leal</div>
+            <h1>Hugo Leal · Niterói 2010 → 2026</h1>
           </div>
         </div>
 
@@ -140,7 +148,6 @@ export default function App() {
         <YearSelectorLayer
           visible={showYears}
           onToggleVisible={() => setShowYears(v => !v)}
-          count={yearTotal ? yearTotal.toLocaleString('pt-BR') : '0'}
           years={years}
           selectedYear={selectedYear}
           onYearChange={setSelectedYear}
@@ -161,7 +168,7 @@ export default function App() {
         />
 
         {showYears && featuresWithShare.length > 0 && (
-          <IntensityLegend breaks={breaks} maxShare={maxShare} year={selectedYear} />
+          <IntensityLegend year={selectedYear} />
         )}
       </div>
 

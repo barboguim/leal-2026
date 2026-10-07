@@ -14,14 +14,12 @@ export default function ComparativoLayer({
   pairMeta,
   deltaTotal, startTotal, endTotal, gained, lost,
 }) {
-  const countLabel = deltaTotal == null ? '—' : formatSigned(deltaTotal);
   return (
     <details className={'group' + (visible ? '' : ' is-hidden')} open>
       <summary className="group-row">
         <EyeToggle visible={visible} onToggle={onToggleVisible} label="Comparativo" />
         <span className="dot" style={{ background: COLORS.deltaGain }} />
         <span className="group-label">Comparativo</span>
-        <span className="group-count">{countLabel}</span>
       </summary>
 
       <div className="group-body">
