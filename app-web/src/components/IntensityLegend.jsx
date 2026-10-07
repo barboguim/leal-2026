@@ -1,24 +1,23 @@
 import { HEAT_PALETTE } from '../lib/visual';
 
-// Classed heat legend. Breaks reflect the actual Hugo-share distribution
-// across 2010-2026: p50 ~1.1 %, p75 ~2 %, max between 4 % and 10 %. Tight
-// bins at the low end (where most locais live) and an open-ended top bin
-// so a single standout year doesn't rescale everyone else.
+// Relative heat legend. Each local is colored by its share of the strongest
+// local that year — so the strongest local reads as 100 %, half-as-strong is
+// 50 %, and so on. Five equal 20-point bins give a natural 0 – 100 % scale.
 
 const CLASS_LABELS = [
-  'até 0,5 %',
-  '0,5 – 1 %',
-  '1 – 2 %',
-  '2 – 3 %',
-  '3 % ou mais',
+  '0 – 20 %',
+  '20 – 40 %',
+  '40 – 60 %',
+  '60 – 80 %',
+  '80 – 100 %',
 ];
 
 export default function IntensityLegend({ year }) {
   return (
     <div className="intensity-legend">
-      <div className="section-title">Intensidade — % dos votos de Hugo</div>
+      <div className="section-title">Intensidade dos votos</div>
       <div className="intensity-sub">
-        parcela do total de votos de Hugo em Niterói{year ? ` (${year})` : ''}
+        votos de Hugo neste local em relação ao local mais forte{year ? ` em ${year}` : ''}
       </div>
       <ul className="intensity-classes">
         {HEAT_PALETTE.map((color, i) => (

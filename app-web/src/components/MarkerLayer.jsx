@@ -14,7 +14,7 @@ export default function MarkerLayer({ layerKey, features, breaks, onSelect }) {
       {features.map(f => {
         const p = f.properties;
         const [lng, lat] = f.geometry.coordinates;
-        const fill = useIntensity ? getHeatColor(p.share_pct, breaks) : '#8B4A9C';
+        const fill = useIntensity ? getHeatColor(p.intensity_pct, breaks) : '#8B4A9C';
         return (
           <CircleMarker
             key={`${layerKey}-${p.nr_local}-${p.ano ?? 'all'}`}

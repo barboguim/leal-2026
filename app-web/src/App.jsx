@@ -84,25 +84,29 @@ export default function App() {
   }
 
   // --- Markers (Ano a ano) --------------------------------------------------
-  // share_pct = this local's QT_VOTOS / Hugo's total QT_VOTOS for the year.
-  // "Distribution share" — answers "what fraction of Hugo's votes come from
-  // this local?". The user asked for the metric to be based on Hugo himself,
-  // not against the field. Across cycles 2010-2026 observed max is ~5%, so
-  // five 1-point bins (0-1, 1-2, ...) cover the range with round edges.
+  // share_pct = this local's QT_VOTOS / max QT_VOTOS across Hugo's locais
+  // that year. "Relative intensity": the strongest local that year reads as
+  // 100 %, everyone else is a share of it. Picked over absolute Hugo-share
+  // because the absolute metric produces values in the 0 – 5 % range, which
+  // doesn't feel like 'intensity'. Relative gives a natural 0 – 100 % scale,
+  // intuitive bins (0-20, 20-40, …) and recolors each year on its own terms
+  // (Hugo's strongest 2010 local vs. his strongest 2026 local are both the
+  // top of their own cycle, which is what a map viewer intuits).
   const hugoFC = data[HUGO];
   const yearFeats = (selectedYear ? hugoFC.features.filter(f => f.properties.ano === selectedYear) : hugoFC.features);
   const localPoints = selectedYear ? yearFeats : aggregateByLocal(yearFeats);
+  const yearMax = localPoints.reduce((m, f) => Math.max(m, Number(f.properties.QT_VOTOS || 0)), 0);
   const yearTotal = localPoints.reduce((s, f) => s + Number(f.properties.QT_VOTOS || 0), 0);
   const featuresWithShare = localPoints.map(f => {
     const votos = Number(f.properties.QT_VOTOS || 0);
+    const intensity_pct = yearMax > 0 ? (votos / yearMax) * 100 : 0;
+    // share_pct kept for the popup (absolute "% of Hugo's total votes" is
+    // still a useful figure once the user is looking at a specific local).
     const share_pct = yearTotal > 0 ? (votos / yearTotal) * 100 : 0;
-    return { ...f, properties: { ...f.properties, share_pct } };
+    return { ...f, properties: { ...f.properties, share_pct, intensity_pct } };
   });
-  // Breaks picked from the empirical distribution of Hugo's share across the
-  // five cycles (2010-2026): p50 ~1.1%, p75 ~2.0%, max 4-10%. Tight at the
-  // dense low end, open-ended at the top so a single outlier year (2026 has
-  // one 10% local) doesn't rescale the whole legend. See docs/plans.
-  const breaks = [0.5, 1, 2, 3];
+  // Five equal 20-point bins cover the full 0 – 100 scale cleanly.
+  const breaks = [20, 40, 60, 80];
 
   // --- Delta (Comparativo) --------------------------------------------------
   const metric = DELTA_METRICS.hugo;

@@ -49,6 +49,12 @@ export default function PopupContent({ p, layerKey }) {
               <span className="popup-val">{Number(p.share_pct).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%</span>
             </div>
           )}
+          {Number.isFinite(Number(p.intensity_pct)) && (
+            <div className="popup-row">
+              <span className="popup-label">Intensidade</span>
+              <span className="popup-val">{Number(p.intensity_pct).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}% do local mais forte</span>
+            </div>
+          )}
           {hasPerformanceShare && (
             <div className="popup-row"><span className="popup-label">% dos votos válidos</span><span className="popup-val">{voteShareText(p.QT_VOTOS, p.total_votos_validos)}</span></div>
           )}
