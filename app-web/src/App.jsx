@@ -113,20 +113,21 @@ export default function App() {
   // full roster of polling places and the Hugo-free ones read as 'quiet'.
   // Coord taken from the first year the local appeared in (coords are static
   // in locais_votacao_niteroi.csv; same across cycles for a given local).
+  const localKey = (p) => `${p.nr_zona ?? ''}:${p.nr_local}`;
   const allKnownLocais = useMemo(() => {
     const m = new Map();
     for (const f of hugoFC.features) {
-      const nr = f.properties.nr_local;
-      if (!m.has(nr)) m.set(nr, f);
+      const k = localKey(f.properties);
+      if (!m.has(k)) m.set(k, f);
     }
     return m;
   }, [hugoFC]);
 
-  const presentLocais = new Set(localPoints.map(f => f.properties.nr_local));
+  const presentLocais = new Set(localPoints.map(f => localKey(f.properties)));
   const zeroFeatures = [];
   if (selectedYear) {
-    for (const [nr, template] of allKnownLocais) {
-      if (presentLocais.has(nr)) continue;
+    for (const [k, template] of allKnownLocais) {
+      if (presentLocais.has(k)) continue;
       zeroFeatures.push({
         ...template,
         properties: {

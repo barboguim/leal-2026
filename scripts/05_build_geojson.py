@@ -19,31 +19,68 @@ def load_csv(path: Path) -> pd.DataFrame | None:
 
 
 def get_local_coords(locais: pd.DataFrame) -> pd.DataFrame:
-    """Build nr_local -> lat/lon/nm_local/bairro lookup from the locais file."""
-    locais["nr_local"] = locais["nr_local"].astype(str).str.strip()
-    unique = locais.drop_duplicates(subset=["nr_local"])
-    cols = [c for c in ["nr_local", "nm_local", "bairro", "lat", "lon"] if c in unique.columns]
+    """Build (nr_zona, nr_local) -> lat/lon/nm_local/bairro lookup. nr_local
+    alone collides across zonas in Niterói (verified ~58 collisions in 2026);
+    the identity key is the pair. Legacy rows (nr_zona == '') serve as the
+    coord fallback for historic years whose zone data we don't have."""
+    locais = locais.copy()
+
+    def clean_id(series: pd.Series) -> pd.Series:
+        # Pandas inferred the column as float on read (load_csv doesn't pass
+        # dtype=str), so "71" came in as 71.0. Round-trip through Int64 to get
+        # a plain integer string, with NaN -> "". str.strip() handles the
+        # cases where the column was already string.
+        numeric = pd.to_numeric(series, errors="coerce")
+        return numeric.astype("Int64").astype(str).replace("<NA>", "").str.strip()
+
+    locais["nr_local"] = clean_id(locais["nr_local"])
+    locais["nr_zona"] = clean_id(locais["nr_zona"]) if "nr_zona" in locais.columns else ""
+    unique = locais.drop_duplicates(subset=["nr_zona", "nr_local"])
+    cols = [c for c in ["nr_zona", "nr_local", "nm_local", "bairro", "lat", "lon"] if c in unique.columns]
     return unique[cols].copy()
 
 
 def merge_votes_to_locais(votes: pd.DataFrame, local_coords: pd.DataFrame) -> pd.DataFrame:
-    """Join votes to locations via NR_LOCAL_VOTACAO -> nr_local."""
-    if "NR_LOCAL_VOTACAO" in votes.columns:
-        votes = votes.copy()
-        votes["nr_local"] = votes["NR_LOCAL_VOTACAO"].astype(str).str.strip()
-        merged = votes.merge(local_coords, on="nr_local", how="left")
-    else:
+    """Join votes to locations on (NR_ZONA, NR_LOCAL_VOTACAO). Falls back to
+    the legacy nr_local-only lookup for historic locais whose zone wasn't in
+    the TSE locais csv (legacy rows carry nr_zona='')."""
+    if "NR_LOCAL_VOTACAO" not in votes.columns:
         return pd.DataFrame()
+    votes = votes.copy()
+
+    def clean_id(series: pd.Series) -> pd.Series:
+        numeric = pd.to_numeric(series, errors="coerce")
+        return numeric.astype("Int64").astype(str).replace("<NA>", "").str.strip()
+
+    votes["nr_local"] = clean_id(votes["NR_LOCAL_VOTACAO"])
+    votes["nr_zona"] = clean_id(votes["NR_ZONA"]) if "NR_ZONA" in votes.columns else ""
+
+    # Composite-key merge first.
+    primary = local_coords[local_coords["nr_zona"] != ""] if "nr_zona" in local_coords.columns else local_coords
+    merged = votes.merge(primary, on=["nr_zona", "nr_local"], how="left")
+
+    # Fallback for rows that didn't match: legacy coords keyed on nr_local only.
+    legacy = local_coords[local_coords["nr_zona"] == ""] if "nr_zona" in local_coords.columns else pd.DataFrame()
+    if not legacy.empty:
+        legacy_lookup = legacy.drop(columns=["nr_zona"]).drop_duplicates("nr_local").set_index("nr_local")
+        for idx, row in merged[merged["lat"].isna()].iterrows():
+            fallback = legacy_lookup.loc[row["nr_local"]] if row["nr_local"] in legacy_lookup.index else None
+            if fallback is not None:
+                for col in ("nm_local", "bairro", "lat", "lon"):
+                    if col in legacy_lookup.columns:
+                        merged.at[idx, col] = fallback[col]
 
     return merged.dropna(subset=["lat", "lon"])
 
 
 def aggregate_to_local(df: pd.DataFrame) -> pd.DataFrame:
-    """Aggregate per-secao votes up to polling-place level for cleaner map points."""
+    """Aggregate per-secao votes up to (zona, local) grain. zona is now part
+    of the identity so distinct buildings sharing nr_local across zonas stay
+    distinct features."""
     if df.empty or "nr_local" not in df.columns:
         return df
 
-    group_cols = ["ano", "nr_local", "label"]
+    group_cols = ["ano", "nr_zona", "nr_local", "label"]
 
     agg = df.groupby(group_cols, as_index=False).agg(
         QT_VOTOS=("QT_VOTOS", "sum"),
@@ -51,8 +88,8 @@ def aggregate_to_local(df: pd.DataFrame) -> pd.DataFrame:
     )
 
     info_cols = [c for c in ["nm_local", "bairro", "lat", "lon"] if c in df.columns]
-    info = df.drop_duplicates(subset=["nr_local"])[["nr_local"] + info_cols]
-    agg = agg.merge(info, on="nr_local", how="left")
+    info = df.drop_duplicates(subset=["nr_zona", "nr_local"])[["nr_zona", "nr_local"] + info_cols]
+    agg = agg.merge(info, on=["nr_zona", "nr_local"], how="left")
     return agg
 
 
