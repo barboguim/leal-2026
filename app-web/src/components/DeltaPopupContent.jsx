@@ -38,8 +38,6 @@ export default function DeltaPopupContent({ p, metric, color, selectedDeltaMetri
       <PopupRow label="Tipo de eleicao" value={p.tipo_par || electionPairLabel(p.ano_inicio, p.ano_fim)} />
       <PopupRow label={`Delta ${metric.label}`} value={primaryValue} color={p[metric.field] == null ? undefined : color} />
       <PopupRow label="Hugo" value={candidateSummary(p.votos_hugo_inicio, p.votos_hugo_fim, p.delta_hugo, p.candidacy_status_hugo, p.cargo_diferente_hugo)} />
-      <PopupRow label="Felipe" value={candidateSummary(p.votos_felipe_inicio, p.votos_felipe_fim, p.delta_felipe, p.candidacy_status_felipe, p.cargo_diferente_felipe)} />
-      <PopupRow label="PSD" value={candidateSummary(p.votos_psd_inicio, p.votos_psd_fim, p.delta_psd, p.candidacy_status_psd, p.cargo_diferente_psd)} />
       <PopupRow label="Secoes" value={`${p.secoes_inicio || 0} -> ${p.secoes_fim || 0}`} />
       <PopupRow label="Troca de secoes" value={formatPct((Number(p.secao_churn) || 0) * 100)} />
       {moved > 0 && <PopupRow label="Secoes com troca" value={`+${p.secoes_movidas_in || 0} / -${p.secoes_movidas_out || 0}`} />}

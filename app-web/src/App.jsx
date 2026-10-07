@@ -3,25 +3,19 @@ import MapView from './components/MapView.jsx';
 import MarkerLayer from './components/MarkerLayer.jsx';
 import DeltaLayer from './components/DeltaLayer.jsx';
 import CompareTable from './components/CompareTable.jsx';
-import StatsPanel from './components/StatsPanel.jsx';
-import CandidateLayer from './components/CandidateLayer.jsx';
+import YearSelectorLayer from './components/YearSelectorLayer.jsx';
+import ComparativoLayer from './components/ComparativoLayer.jsx';
 import IntensityLegend from './components/IntensityLegend.jsx';
 import { useMapData } from './lib/useMapData.js';
 import { aggregateByLocal } from './lib/aggregate.js';
-import { COLORS, LABELS, BASE_KEYS, DELTA_METRICS } from './lib/constants.js';
+import { DELTA_METRICS } from './lib/constants.js';
+import { computeQuantileBreaks } from './lib/visual.js';
 
-// leal-2026 is a Hugo-only product. The deep strip of Felipe/PSD code paths
-// is deferred; narrowing these three lists hides them from the UI.
-const LAYER_ORDER = ['hugo_leal'];
-const TOGGLE_ID_BY_LAYER_KEY = { hugo_leal: 'hugo' };
-const CANDIDATE_ROWS = [
-  { baseKey: 'hugo_leal', metricKey: 'hugo', label: LABELS.hugo_leal, color: COLORS.hugo_leal },
-];
+const HUGO = 'hugo_leal';
 
-// 2018-2022 is the one pair that is verified fully-gated for Hugo under the
-// candidacy-matrix pairing rule. The 2022-2026 pair becomes the default once
-// script 06 is re-run with 2026 included (deferred).
 function defaultPairFor(pairs) {
+  // 2022-2026 is the newest Geral-to-Geral pair, which is the default users
+  // land on. Historic fallback goes to the most recent pair the dataset has.
   if (pairs.includes('2022-2026')) return '2022-2026';
   if (pairs.includes('2018-2022')) return '2018-2022';
   return pairs[pairs.length - 1] ?? null;
@@ -31,44 +25,40 @@ export default function App() {
   const rawData = useMapData();
   const data = rawData;
 
-  const yearsByCandidate = useMemo(() => {
-    const result = {};
-    for (const key of BASE_KEYS) {
-      result[key] = [...new Set((data?.[key]?.features || []).map(f => Number(f.properties.ano)).filter(Number.isFinite))].sort((a, b) => a - b);
-    }
-    return result;
+  const years = useMemo(() => {
+    const feats = data?.[HUGO]?.features || [];
+    return [...new Set(feats.map(f => Number(f.properties.ano)).filter(Number.isFinite))].sort((a, b) => a - b);
   }, [data]);
 
-  const pairsByMetric = useMemo(() => {
-    if (!data?.vote_deltas) return {};
-    const result = {};
-    for (const [key, metric] of Object.entries(DELTA_METRICS)) {
-      const valid = new Set(
-        data.vote_deltas.features
-          .filter(f => f.properties[metric.field] !== null && f.properties[metric.field] !== undefined)
-          .map(f => f.properties.pair)
-      );
-      result[key] = [...valid].sort((a, b) => Number(a.slice(0, 4)) - Number(b.slice(0, 4)));
-    }
-    return result;
+  const pairs = useMemo(() => {
+    if (!data?.vote_deltas) return [];
+    const valid = new Set(
+      data.vote_deltas.features
+        .filter(f => f.properties.delta_hugo !== null && f.properties.delta_hugo !== undefined)
+        .map(f => f.properties.pair)
+    );
+    return [...valid].sort((a, b) => Number(a.slice(0, 4)) - Number(b.slice(0, 4)));
   }, [data]);
 
-  const [candidateYears, setCandidateYears] = useState(() => {
-    const result = {};
-    for (const key of BASE_KEYS) {
-      const years = yearsByCandidate[key] || [];
-      // Default to the most recent cycle (2026) when available.
-      result[key] = years[years.length - 1] ?? null;
-    }
-    return result;
-  });
-
-  const defaultDeltaPair = defaultPairFor(pairsByMetric.hugo || []);
-  const [activeDeltaCandidate, setActiveDeltaCandidate] = useState(null);
-  const [selectedYearA, setSelectedYearA] = useState(() => (defaultDeltaPair ? Number(defaultDeltaPair.split('-')[0]) : null));
-  const [selectedYearB, setSelectedYearB] = useState(() => (defaultDeltaPair ? Number(defaultDeltaPair.split('-')[1]) : null));
-  const [toggles, setToggles] = useState({ hugo: true });
+  const [selectedYear, setSelectedYear] = useState(null);
+  const [selectedPair, setSelectedPair] = useState(null);
+  const [showYears, setShowYears] = useState(true);
+  const [showCompare, setShowCompare] = useState(false);
   const [compareSelection, setCompareSelection] = useState(null);
+
+  // Default selections once data lands. Year picks the most recent cycle
+  // (2026 when the pipeline has it). Pair picks 2022-2026 when available,
+  // 2018-2022 otherwise.
+  useEffect(() => {
+    if (selectedYear == null && years.length > 0) {
+      setSelectedYear(years[years.length - 1]);
+    }
+  }, [years, selectedYear]);
+  useEffect(() => {
+    if (selectedPair == null && pairs.length > 0) {
+      setSelectedPair(defaultPairFor(pairs));
+    }
+  }, [pairs, selectedPair]);
 
   useEffect(() => {
     const handler = (e) => {
@@ -81,165 +71,97 @@ export default function App() {
     return () => document.removeEventListener('click', handler);
   }, []);
 
-  function handleCandidateYearChange(baseKey, year) {
-    setCandidateYears(prev => ({ ...prev, [baseKey]: year }));
-  }
-
-  function handleToggleVisible(baseKey) {
-    const toggleId = TOGGLE_ID_BY_LAYER_KEY[baseKey];
-    const turningOff = toggles[toggleId];
-    setToggles(t => ({ ...t, [toggleId]: !t[toggleId] }));
-    if (turningOff && activeDeltaCandidate === toggleId) {
-      setActiveDeltaCandidate(null);
-      setSelectedYearA(null);
-      setSelectedYearB(null);
-    }
-  }
-
-  function handleToggleCompare(metricKey) {
-    if (activeDeltaCandidate === metricKey) {
-      setActiveDeltaCandidate(null);
-      setSelectedYearA(null);
-      setSelectedYearB(null);
-      return;
-    }
-    setActiveDeltaCandidate(metricKey);
-    if (!toggles[metricKey]) {
-      setToggles(t => ({ ...t, [metricKey]: true }));
-    }
-    const pair = defaultPairFor(pairsByMetric[metricKey] || []);
-    setSelectedYearA(pair ? Number(pair.split('-')[0]) : null);
-    setSelectedYearB(pair ? Number(pair.split('-')[1]) : null);
-  }
-
-  function handleSelectPair(pairStr) {
-    const [yearA, yearB] = pairStr.split('-').map(Number);
-    setSelectedYearA(yearA);
-    setSelectedYearB(yearB);
-  }
-
   if (!data) {
     return <div style={{ padding: 24 }}>Dados nao carregados.</div>;
   }
 
-  const pair = selectedYearA != null && selectedYearB != null ? `${selectedYearA}-${selectedYearB}` : null;
-  const selectedPairFeature = pair
-    ? data.vote_deltas?.features.find(f => f.properties.pair === pair)
-    : null;
-  const selectedPairMeta = selectedPairFeature
+  // --- Markers (Ano a ano) --------------------------------------------------
+  // Compute per-local share of Hugo's total for the selected year, plus the
+  // quantile breaks that drive the heat palette. The breaks are shared by
+  // the markers and the legend so both tell the same story.
+  const hugoFC = data[HUGO];
+  const yearFeats = (selectedYear ? hugoFC.features.filter(f => f.properties.ano === selectedYear) : hugoFC.features);
+  const localPoints = selectedYear ? yearFeats : aggregateByLocal(yearFeats);
+  const yearTotal = localPoints.reduce((s, f) => s + Number(f.properties.QT_VOTOS || 0), 0);
+  const featuresWithShare = localPoints.map(f => ({
+    ...f,
+    properties: {
+      ...f.properties,
+      share_pct: yearTotal > 0 ? (Number(f.properties.QT_VOTOS || 0) / yearTotal) * 100 : 0,
+    },
+  }));
+  const breaks = computeQuantileBreaks(featuresWithShare.map(f => f.properties.share_pct), 5);
+  const maxShare = featuresWithShare.reduce((m, f) => Math.max(m, f.properties.share_pct), 0);
+
+  // --- Delta (Comparativo) --------------------------------------------------
+  const metric = DELTA_METRICS.hugo;
+  const pairFeats = selectedPair && data.vote_deltas
+    ? data.vote_deltas.features.filter(f => f.properties.pair === selectedPair)
+    : [];
+  const gatedDeltaFeats = pairFeats.filter(f => f.properties[metric.field] !== null && f.properties[metric.field] !== undefined);
+  const deltaTotal = gatedDeltaFeats.length ? gatedDeltaFeats.reduce((s, f) => s + Number(f.properties[metric.field]), 0) : null;
+  const startTotal = gatedDeltaFeats.reduce((s, f) => s + (Number(f.properties.votos_hugo_inicio) || 0), 0);
+  const endTotal = gatedDeltaFeats.reduce((s, f) => s + (Number(f.properties.votos_hugo_fim) || 0), 0);
+  const gained = gatedDeltaFeats.reduce((s, f) => s + Math.max(Number(f.properties[metric.field]), 0), 0);
+  const lost = gatedDeltaFeats.reduce((s, f) => s + Math.max(-Number(f.properties[metric.field]), 0), 0);
+  const pairMeta = gatedDeltaFeats[0]
     ? {
-        tipo_par: selectedPairFeature.properties.tipo_par,
-        cargoDiferente: Boolean(selectedPairFeature.properties[`cargo_diferente_${activeDeltaCandidate}`]),
+        tipo_par: gatedDeltaFeats[0].properties.tipo_par,
+        cargoDiferente: Boolean(gatedDeltaFeats[0].properties.cargo_diferente_hugo),
       }
     : null;
-
-  // Precompute per-local vote share so markers can be colored by intensity.
-  // Share = this local's QT_VOTOS / sum of all locais' QT_VOTOS for the
-  // selected year. Shows where Hugo's base is concentrated.
-  const counts = {};
-  const markerLayers = LAYER_ORDER
-    .filter(key => toggles[TOGGLE_ID_BY_LAYER_KEY[key]])
-    .map(key => {
-      const fc = data[key];
-      if (!fc) return null;
-      const candYear = candidateYears[key];
-      const filtered = candYear ? fc.features.filter(f => f.properties.ano === candYear) : fc.features;
-      const points = candYear ? filtered : aggregateByLocal(filtered);
-      const total = points.reduce((s, f) => s + Number(f.properties.QT_VOTOS || 0), 0);
-      const withShare = points.map(f => ({
-        ...f,
-        properties: {
-          ...f.properties,
-          share_pct: total > 0 ? (Number(f.properties.QT_VOTOS || 0) / total) * 100 : 0,
-        },
-      }));
-      const maxShare = withShare.reduce((m, f) => Math.max(m, f.properties.share_pct), 0);
-      const id = TOGGLE_ID_BY_LAYER_KEY[key];
-      counts[id] = total.toLocaleString('pt-BR');
-      return { key, features: withShare, maxShare };
-    })
-    .filter(Boolean);
-
-  const deltaFeats = data.vote_deltas && pair
-    ? data.vote_deltas.features.filter(f => f.properties.pair === pair)
-    : [];
-  let deltaTotal = null;
-  if (data.vote_deltas && pair && activeDeltaCandidate) {
-    const metric = DELTA_METRICS[activeDeltaCandidate];
-    const gatedDeltaFeats = deltaFeats.filter(f => f.properties[metric.field] !== null && f.properties[metric.field] !== undefined);
-    if (gatedDeltaFeats.length > 0) {
-      deltaTotal = gatedDeltaFeats.reduce((s, f) => s + Number(f.properties[metric.field]), 0);
-    }
-  }
-
-  const hugoLayer = markerLayers.find(l => l.key === 'hugo_leal');
 
   return (
     <>
       <MapView>
-        {markerLayers.map(({ key, features, maxShare }) => (
+        {showYears && (
           <MarkerLayer
-            key={key}
-            layerKey={key}
-            features={features}
-            maxShare={maxShare}
+            layerKey={HUGO}
+            features={featuresWithShare}
+            breaks={breaks}
             onSelect={(p, coords) => setCompareSelection({ props: p, coords })}
           />
-        ))}
-        {activeDeltaCandidate && pair && (
-          <DeltaLayer features={deltaFeats} metric={DELTA_METRICS[activeDeltaCandidate]} selectedDeltaMetric={activeDeltaCandidate} data={data} />
+        )}
+        {showCompare && selectedPair && (
+          <DeltaLayer features={pairFeats} metric={metric} selectedDeltaMetric="hugo" data={data} />
         )}
       </MapView>
 
       <div id="panel">
         <div className="panel-header">
           <div>
-            <h1>Mapa eleitoral · Hugo Leal</h1>
-            <div className="subtitle">Niterói — 2010 → 2026</div>
+            <h1>Mapa eleitoral</h1>
+            <div className="subtitle">Hugo Leal</div>
           </div>
         </div>
 
         <div className="section-title">Camadas</div>
-        {CANDIDATE_ROWS.map(({ baseKey, metricKey, label, color }) => (
-          <CandidateLayer
-            key={baseKey}
-            metricKey={metricKey}
-            label={label}
-            color={color}
-            visible={toggles[TOGGLE_ID_BY_LAYER_KEY[baseKey]]}
-            onToggleVisible={() => handleToggleVisible(baseKey)}
-            count={counts[TOGGLE_ID_BY_LAYER_KEY[baseKey]]}
-            years={yearsByCandidate[baseKey] || []}
-            selectedYear={candidateYears[baseKey]}
-            onYearChange={(year) => handleCandidateYearChange(baseKey, year)}
-            pairs={pairsByMetric[metricKey] || []}
-            isComparing={activeDeltaCandidate === metricKey}
-            onToggleCompare={handleToggleCompare}
-            selectedPair={pair}
-            onSelectPair={handleSelectPair}
-            deltaTotal={activeDeltaCandidate === metricKey ? deltaTotal : null}
-            pairMeta={activeDeltaCandidate === metricKey ? selectedPairMeta : null}
-          />
-        ))}
 
-        {hugoLayer && hugoLayer.features.length > 0 && (
-          <IntensityLegend maxShare={hugoLayer.maxShare} year={candidateYears.hugo_leal} />
-        )}
+        <YearSelectorLayer
+          visible={showYears}
+          onToggleVisible={() => setShowYears(v => !v)}
+          count={yearTotal ? yearTotal.toLocaleString('pt-BR') : '0'}
+          years={years}
+          selectedYear={selectedYear}
+          onYearChange={setSelectedYear}
+        />
 
-        {/* StatsPanel duplicates the Camadas row (same votes / locais) in the
-            default view, so only render it when a delta comparison is active —
-            there it adds Inicio / Fim / Saldo / Ganhos / Perdas, which the
-            layer row doesn't show. */}
-        {activeDeltaCandidate && pair && (
-          <StatsPanel
-            data={data}
-            candidateYears={candidateYears}
-            selectedRegion="all"
-            selectedBairro="all"
-            selectedPair={pair}
-            selectedDeltaMetric={activeDeltaCandidate}
-            deltaEnabled={true}
-          />
+        <ComparativoLayer
+          visible={showCompare}
+          onToggleVisible={() => setShowCompare(v => !v)}
+          pairs={pairs}
+          selectedPair={selectedPair}
+          onSelectPair={setSelectedPair}
+          pairMeta={pairMeta}
+          deltaTotal={deltaTotal}
+          startTotal={startTotal}
+          endTotal={endTotal}
+          gained={gained}
+          lost={lost}
+        />
+
+        {showYears && featuresWithShare.length > 0 && (
+          <IntensityLegend breaks={breaks} maxShare={maxShare} year={selectedYear} />
         )}
       </div>
 

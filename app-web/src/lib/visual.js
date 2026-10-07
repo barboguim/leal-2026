@@ -33,16 +33,42 @@ export function getSequentialColor(pct, min = 0, max = 100) {
   return interpolateColor(light, dark, t);
 }
 
-// Hugo-brand purple scale. Light stop is a near-white tint of the brand hue so
-// weak-contribution markers fade into the basemap; dark stop is the full brand
-// purple so Hugo's strongest locais read as the focal points on the map.
-export function getHugoIntensityColor(share, maxShare) {
-  const light = [240, 232, 244];
-  const dark = [139, 74, 156]; // #8B4A9C — Hugo brand purple
-  const value = Number.isFinite(Number(share)) ? Number(share) : 0;
-  const ceiling = Math.max(Number(maxShare) || 0, 0.0001);
-  // Square-root curve: compresses the long tail so even mid-share locais show
-  // a readable hue, instead of all but the brightest fading to the light stop.
-  const t = Math.min(1, Math.sqrt(value / ceiling));
-  return interpolateColor(light, dark, t);
+// Classic 5-class sequential heat palette (ColorBrewer YlOrRd). Chosen over a
+// continuous gradient because the user asked for discrete classes — a classed
+// map reads more honestly on skewed data (Hugo's share has a long tail) and
+// the legend can show explicit break values.
+export const HEAT_PALETTE = ['#FFEDA0', '#FEB24C', '#FD8D3C', '#FC4E2A', '#B10026'];
+
+// Quantile breaks: k-1 cut points that split a sorted sample into k classes
+// of equal count. Works on skewed distributions (fair visual balance) and
+// never produces an empty class, unlike equal-interval. Duplicates in the
+// sample can collapse adjacent breaks into the same value — the renderer
+// still assigns each point to exactly one class via the strict-less-than
+// comparison in getHeatClass.
+export function computeQuantileBreaks(values, k = 5) {
+  const sorted = values
+    .map(Number)
+    .filter(v => Number.isFinite(v))
+    .sort((a, b) => a - b);
+  if (sorted.length === 0) return [];
+  const breaks = [];
+  for (let i = 1; i < k; i++) {
+    const idx = Math.min(sorted.length - 1, Math.floor((sorted.length * i) / k));
+    breaks.push(sorted[idx]);
+  }
+  return breaks;
+}
+
+// Returns the class index [0 .. palette.length-1] for a value given k-1 breaks.
+export function getHeatClass(value, breaks) {
+  const v = Number(value);
+  if (!Number.isFinite(v)) return 0;
+  for (let i = 0; i < breaks.length; i++) {
+    if (v < breaks[i]) return i;
+  }
+  return breaks.length;
+}
+
+export function getHeatColor(value, breaks, palette = HEAT_PALETTE) {
+  return palette[getHeatClass(value, breaks)];
 }
