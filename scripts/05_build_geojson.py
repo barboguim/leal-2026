@@ -134,21 +134,13 @@ def main():
         out.write_text(json.dumps(geojson, ensure_ascii=False, indent=2), encoding="utf-8")
         print(f"  Saved {out.name} ({len(geojson['features'])} features)")
 
-    # Rebuild data.js for the web map
-    all_data = {}
-    for name in datasets:
-        geojson_path = DATA_GEO / f"{name}.geojson"
-        if geojson_path.exists():
-            all_data[name] = json.loads(geojson_path.read_text(encoding="utf-8"))
-
-    app_dir = DATA_GEO.parent.parent / "app"
-    app_dir.mkdir(exist_ok=True)
-    data_js = app_dir / "data.js"
-    data_js.write_text(
-        "const DATA = " + json.dumps(all_data, ensure_ascii=False, separators=(",", ":")) + ";",
-        encoding="utf-8",
-    )
-    print(f"\nRebuilt app/data.js")
+    # Rebuild data.js for the web map. Use the full APP_GEOJSON_LAYERS list
+    # (not just this script's `datasets`) so vote_deltas and voter_profile
+    # stay in the bundle when 05 is re-run; otherwise 05 wipes them and the
+    # UI's "Comparar dois anos" and profile sections silently go empty until
+    # 06 and 09 run again.
+    from _pipeline_utils import APP_GEOJSON_LAYERS, rebuild_data_js
+    rebuild_data_js(DATA_GEO, DATA_GEO.parent.parent / "app", APP_GEOJSON_LAYERS)
     print("Done.")
 
 

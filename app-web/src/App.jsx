@@ -194,8 +194,8 @@ export default function App() {
       <div id="panel">
         <div className="panel-header">
           <div>
-            <h1>HUGO LEAL</h1>
-            <div className="subtitle">Niterói · 2010 → 2026</div>
+            <h1>Mapa eleitoral · Hugo Leal</h1>
+            <div className="subtitle">Niterói — 2010 → 2026</div>
           </div>
         </div>
 
