@@ -97,7 +97,11 @@ export default function App() {
     const share_pct = yearTotal > 0 ? (votos / yearTotal) * 100 : 0;
     return { ...f, properties: { ...f.properties, share_pct } };
   });
-  const breaks = [1, 2, 3, 4];
+  // Breaks picked from the empirical distribution of Hugo's share across the
+  // five cycles (2010-2026): p50 ~1.1%, p75 ~2.0%, max 4-10%. Tight at the
+  // dense low end, open-ended at the top so a single outlier year (2026 has
+  // one 10% local) doesn't rescale the whole legend. See docs/plans.
+  const breaks = [0.5, 1, 2, 3];
 
   // --- Delta (Comparativo) --------------------------------------------------
   const metric = DELTA_METRICS.hugo;
@@ -163,6 +167,8 @@ export default function App() {
           endTotal={endTotal}
           gained={gained}
           lost={lost}
+          anoInicio={selectedPair ? Number(selectedPair.split('-')[0]) : null}
+          anoFim={selectedPair ? Number(selectedPair.split('-')[1]) : null}
         />
 
         {showYears && featuresWithShare.length > 0 && (

@@ -13,6 +13,7 @@ export default function ComparativoLayer({
   pairs, selectedPair, onSelectPair,
   pairMeta,
   deltaTotal, startTotal, endTotal, gained, lost,
+  anoInicio, anoFim,
 }) {
   return (
     <details className={'group' + (visible ? '' : ' is-hidden')} open>
@@ -52,8 +53,8 @@ export default function ComparativoLayer({
 
         {deltaTotal != null && (
           <div className="compare-stats">
-            <div className="popup-row"><span className="popup-label">Inicio</span><span className="stat-val">{startTotal?.toLocaleString('pt-BR') ?? '—'}</span></div>
-            <div className="popup-row"><span className="popup-label">Fim</span><span className="stat-val">{endTotal?.toLocaleString('pt-BR') ?? '—'}</span></div>
+            <div className="popup-row"><span className="popup-label">{anoInicio ?? 'Inicio'}</span><span className="stat-val">{startTotal?.toLocaleString('pt-BR') ?? '—'}</span></div>
+            <div className="popup-row"><span className="popup-label">{anoFim ?? 'Fim'}</span><span className="stat-val">{endTotal?.toLocaleString('pt-BR') ?? '—'}</span></div>
             <div className="popup-row"><span className="popup-label">Saldo</span><span className="stat-val">{formatSigned(deltaTotal)}</span></div>
             <div className="popup-row"><span className="popup-label">Ganhos</span><span className="stat-val">{gained?.toLocaleString('pt-BR') ?? '0'}</span></div>
             <div className="popup-row"><span className="popup-label">Perdas</span><span className="stat-val">{lost?.toLocaleString('pt-BR') ?? '0'}</span></div>
