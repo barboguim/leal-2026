@@ -226,15 +226,21 @@ export default function App() {
           <IntensityLegend maxShare={hugoLayer.maxShare} year={candidateYears.hugo_leal} />
         )}
 
-        <StatsPanel
-          data={data}
-          candidateYears={candidateYears}
-          selectedRegion="all"
-          selectedBairro="all"
-          selectedPair={pair}
-          selectedDeltaMetric={activeDeltaCandidate}
-          deltaEnabled={activeDeltaCandidate != null}
-        />
+        {/* StatsPanel duplicates the Camadas row (same votes / locais) in the
+            default view, so only render it when a delta comparison is active —
+            there it adds Inicio / Fim / Saldo / Ganhos / Perdas, which the
+            layer row doesn't show. */}
+        {activeDeltaCandidate && pair && (
+          <StatsPanel
+            data={data}
+            candidateYears={candidateYears}
+            selectedRegion="all"
+            selectedBairro="all"
+            selectedPair={pair}
+            selectedDeltaMetric={activeDeltaCandidate}
+            deltaEnabled={true}
+          />
+        )}
       </div>
 
       <CompareTable selection={compareSelection} data={data} />
