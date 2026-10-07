@@ -17,14 +17,13 @@ import { annotateFeatureCollection, normalizeText, featureName, passesGeoFilter 
 import { electionType } from './lib/format.js';
 import { COLORS, LABELS, BASE_KEYS, DELTA_METRICS, PROFILE_METRICS } from './lib/constants.js';
 
-const LAYER_ORDER = ['psd', 'felipe_peixoto', 'hugo_leal'];
-const TOGGLE_ID_BY_LAYER_KEY = { psd: 'psd', felipe_peixoto: 'felipe', hugo_leal: 'hugo' };
-// Sidebar display order (Hugo, Felipe, PSD) is independent of LAYER_ORDER above,
-// which controls map z-order (PSD drawn first/bottom, Hugo last/top).
+// leal-2026 is a Hugo-only product. The deep strip of Felipe/PSD code paths
+// is deferred (docs/plans/2026-10-07-hugo-leal-only-fork.md §8). Narrowing
+// these three lists is enough to hide them from the UI.
+const LAYER_ORDER = ['hugo_leal'];
+const TOGGLE_ID_BY_LAYER_KEY = { hugo_leal: 'hugo' };
 const CANDIDATE_ROWS = [
   { baseKey: 'hugo_leal', metricKey: 'hugo', label: LABELS.hugo_leal, color: COLORS.hugo_leal },
-  { baseKey: 'felipe_peixoto', metricKey: 'felipe', label: LABELS.felipe_peixoto, color: COLORS.felipe_peixoto },
-  { baseKey: 'psd', metricKey: 'psd', label: 'PSD (total)', color: COLORS.psd },
 ];
 
 // 2018-2022 is verified against real vote_deltas data to be fully gated for

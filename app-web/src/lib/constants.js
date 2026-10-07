@@ -19,7 +19,11 @@ export const LABELS = {
   psd: 'PSD',
 };
 
-export const BASE_KEYS = ['hugo_leal', 'felipe_peixoto', 'psd'];
+// leal-2026 is a Hugo-only product (see docs/LINEAGE.md). Felipe/PSD color and
+// label entries are retained for now so untouched components that reference
+// them do not crash; they are not rendered because BASE_KEYS, LAYER_ORDER, and
+// CANDIDATE_ROWS all skip them.
+export const BASE_KEYS = ['hugo_leal'];
 
 export const DELTA_METRICS = {
   hugo: { label: 'Hugo', field: 'delta_hugo' },
