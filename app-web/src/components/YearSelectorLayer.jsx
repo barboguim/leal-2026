@@ -8,7 +8,14 @@ import EyeToggle from './EyeToggle.jsx';
 export default function YearSelectorLayer({
   visible, onToggleVisible,
   years, selectedYear, onYearChange,
+  locaisCount, prevYear, newLocaisCount, goneLocaisCount,
 }) {
+  const changeParts = [];
+  if (prevYear != null) {
+    if (newLocaisCount > 0) changeParts.push(`${newLocaisCount} ${newLocaisCount === 1 ? 'novo' : 'novos'}`);
+    if (goneLocaisCount > 0) changeParts.push(`${goneLocaisCount} ${goneLocaisCount === 1 ? 'saiu' : 'saíram'}`);
+  }
+
   return (
     <details className={'group' + (visible ? '' : ' is-hidden')}>
       <summary className="group-row">
@@ -35,6 +42,14 @@ export default function YearSelectorLayer({
           <span><span className="dot" style={{ background: COLORS.yearGeral }} /> Geral</span>
           <span><span className="dot" style={{ background: COLORS.yearMunicipal }} /> Municipal</span>
         </div>
+        {Number.isFinite(locaisCount) && locaisCount > 0 && (
+          <div className="status-caption">
+            <strong>{locaisCount}</strong> {locaisCount === 1 ? 'local' : 'locais'} com votos de Hugo
+            {changeParts.length > 0 && (
+              <span className="status-caption-sub"> · desde {prevYear}: {changeParts.join(', ')}</span>
+            )}
+          </div>
+        )}
       </div>
     </details>
   );

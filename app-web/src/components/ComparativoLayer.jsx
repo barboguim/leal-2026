@@ -14,6 +14,7 @@ export default function ComparativoLayer({
   pairMeta,
   deltaTotal, startTotal, endTotal, gained, lost,
   anoInicio, anoFim,
+  pairNewCount, pairGoneCount, pairStableCount,
 }) {
   return (
     <details className={'group' + (visible ? '' : ' is-hidden')}>
@@ -50,6 +51,14 @@ export default function ComparativoLayer({
         <div className="delta-legend">
           <span>perdeu</span><span className="delta-scale" /><span>ganhou</span>
         </div>
+
+        {(pairNewCount > 0 || pairGoneCount > 0) && selectedPair && (
+          <div className="status-caption">
+            <strong>{pairStableCount}</strong> {pairStableCount === 1 ? 'local' : 'locais'} em ambos
+            {pairNewCount > 0 && <> · <strong>{pairNewCount}</strong> {pairNewCount === 1 ? 'novo' : 'novos'} em {anoFim}</>}
+            {pairGoneCount > 0 && <> · <strong>{pairGoneCount}</strong> {pairGoneCount === 1 ? 'desapareceu' : 'desapareceram'}</>}
+          </div>
+        )}
 
         {deltaTotal != null && (
           <div className="compare-stats">

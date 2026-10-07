@@ -52,7 +52,13 @@ export default function App() {
   const [showYears, setShowYears] = useState(true);
   const [showCompare, setShowCompare] = useState(false);
   const [compareSelection, setCompareSelection] = useState(null);
-  const [panelCollapsed, setPanelCollapsed] = useState(false);
+  // Panel starts collapsed on narrow viewports so the map wins the first
+  // paint on mobile. Guarded for SSR / older environments where matchMedia
+  // may not exist.
+  const [panelCollapsed, setPanelCollapsed] = useState(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return false;
+    return window.matchMedia('(max-width: 640px)').matches;
+  });
 
   // Default selections once data lands. Year picks the most recent cycle
   // (2026 when the pipeline has it). Pair picks 2022-2026 when available,
@@ -108,11 +114,35 @@ export default function App() {
   // Five equal 20-point bins cover the full 0 – 100 scale cleanly.
   const breaks = [20, 40, 60, 80];
 
+  // Per-year local-set status — tells the user how the locais set changed
+  // between the previous Geral cycle and the one in view. Powers the small
+  // "N novos desde Y" caption inside Ano a ano, and makes the map's
+  // location change visible as a number too.
+  const prevYear = selectedYear
+    ? [...years].reverse().find(y => y < selectedYear)
+    : null;
+  const prevSet = prevYear
+    ? new Set(hugoFC.features.filter(f => f.properties.ano === prevYear).map(f => f.properties.nr_local))
+    : null;
+  const curSet = new Set(localPoints.map(f => f.properties.nr_local));
+  const newLocaisCount = prevSet
+    ? [...curSet].filter(l => !prevSet.has(l)).length
+    : null;
+  const goneLocaisCount = prevSet
+    ? [...prevSet].filter(l => !curSet.has(l)).length
+    : null;
+
   // --- Delta (Comparativo) --------------------------------------------------
   const metric = DELTA_METRICS.hugo;
   const pairFeats = selectedPair && data.vote_deltas
     ? data.vote_deltas.features.filter(f => f.properties.pair === selectedPair)
     : [];
+  // Local-status counts (new / disappeared / stable) across the selected pair.
+  // Surfaces 'the actual locais de votacao' story — same info the Ano a ano
+  // caption shows, but scoped to the comparison's two years.
+  const pairNewCount = pairFeats.filter(f => f.properties.local_status === 'end_only').length;
+  const pairGoneCount = pairFeats.filter(f => f.properties.local_status === 'start_only').length;
+  const pairStableCount = pairFeats.filter(f => f.properties.local_status === 'both').length;
   const gatedDeltaFeats = pairFeats.filter(f => f.properties[metric.field] !== null && f.properties[metric.field] !== undefined);
   const deltaTotal = gatedDeltaFeats.length ? gatedDeltaFeats.reduce((s, f) => s + Number(f.properties[metric.field]), 0) : null;
   const startTotal = gatedDeltaFeats.reduce((s, f) => s + (Number(f.properties.votos_hugo_inicio) || 0), 0);
@@ -172,6 +202,10 @@ export default function App() {
           years={years}
           selectedYear={selectedYear}
           onYearChange={setSelectedYear}
+          locaisCount={curSet.size}
+          prevYear={prevYear}
+          newLocaisCount={newLocaisCount}
+          goneLocaisCount={goneLocaisCount}
         />
 
         <ComparativoLayer
@@ -188,6 +222,9 @@ export default function App() {
           lost={lost}
           anoInicio={selectedPair ? Number(selectedPair.split('-')[0]) : null}
           anoFim={selectedPair ? Number(selectedPair.split('-')[1]) : null}
+          pairNewCount={pairNewCount}
+          pairGoneCount={pairGoneCount}
+          pairStableCount={pairStableCount}
         />
 
         {showYears && featuresWithShare.length > 0 && (
