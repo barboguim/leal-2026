@@ -156,20 +156,45 @@ def save_all_niteroi_raw(dfs: list[pd.DataFrame]):
     print(f"\nSaved niteroi_summary.csv")
 
 
+def merge_year(path: Path, new_rows: pd.DataFrame, year: int) -> pd.DataFrame:
+    """Idempotent per-year merge: drop any existing rows for `year`, append new, return."""
+    if path.exists():
+        existing = pd.read_csv(path, dtype=str)
+        existing["ano"] = pd.to_numeric(existing["ano"], errors="coerce").astype("Int64")
+        existing = existing[existing["ano"] != year]
+        combined = pd.concat([existing, new_rows], ignore_index=True)
+    else:
+        combined = new_rows
+    return combined
+
+
 def main():
     DATA_PROCESSED.mkdir(parents=True, exist_ok=True)
+
+    # --year N: process only that year, merge into existing output CSVs.
+    # Default: process all ALL_YEARS and overwrite (full-rebuild mode).
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--year", type=int, default=None,
+                        help="Process only this year, merge into existing CSVs (memory-safe, incremental)")
+    args = parser.parse_args()
+
+    years = [args.year] if args.year is not None else ALL_YEARS
+    incremental = args.year is not None
+
     all_hugo = []
     all_felipe = []
     all_psd = []
     all_raw = []
 
-    for year in ALL_YEARS:
+    for year in years:
         print(f"\n=== {year} ===")
         df = process_votacao_secao(year)
         if df is None:
             continue
 
-        all_raw.append(df)
+        if not incremental:
+            all_raw.append(df)
 
         # Hugo Leal
         hugo = extract_candidate_votes(df, HUGO_LEAL, year)
@@ -198,23 +223,42 @@ def main():
         else:
             print(f"  PSD: not found in {year}")
 
-    # Save consolidated CSVs
-    if all_hugo:
-        out = pd.concat(all_hugo, ignore_index=True)
-        out.to_csv(DATA_PROCESSED / "hugo_leal_by_secao.csv", index=False)
-        print(f"\nSaved hugo_leal_by_secao.csv ({len(out)} rows)")
+        # Release the big raw df before next iteration
+        del df
+        if incremental:
+            # ponytail: in incremental mode we merge-and-save per year
+            if all_hugo:
+                out = merge_year(DATA_PROCESSED / "hugo_leal_by_secao.csv", all_hugo[-1], year)
+                out.to_csv(DATA_PROCESSED / "hugo_leal_by_secao.csv", index=False)
+                print(f"  Merged into hugo_leal_by_secao.csv ({len(out)} rows total)")
+            if all_felipe:
+                out = merge_year(DATA_PROCESSED / "felipe_peixoto_by_secao.csv", all_felipe[-1], year)
+                out.to_csv(DATA_PROCESSED / "felipe_peixoto_by_secao.csv", index=False)
+                print(f"  Merged into felipe_peixoto_by_secao.csv ({len(out)} rows total)")
+            if all_psd:
+                out = merge_year(DATA_PROCESSED / "psd_by_secao.csv", all_psd[-1], year)
+                out.to_csv(DATA_PROCESSED / "psd_by_secao.csv", index=False)
+                print(f"  Merged into psd_by_secao.csv ({len(out)} rows total)")
 
-    if all_felipe:
-        out = pd.concat(all_felipe, ignore_index=True)
-        out.to_csv(DATA_PROCESSED / "felipe_peixoto_by_secao.csv", index=False)
-        print(f"Saved felipe_peixoto_by_secao.csv ({len(out)} rows)")
+    # Full-rebuild mode: write consolidated CSVs after loop
+    if not incremental:
+        if all_hugo:
+            out = pd.concat(all_hugo, ignore_index=True)
+            out.to_csv(DATA_PROCESSED / "hugo_leal_by_secao.csv", index=False)
+            print(f"\nSaved hugo_leal_by_secao.csv ({len(out)} rows)")
 
-    if all_psd:
-        out = pd.concat(all_psd, ignore_index=True)
-        out.to_csv(DATA_PROCESSED / "psd_by_secao.csv", index=False)
-        print(f"Saved psd_by_secao.csv ({len(out)} rows)")
+        if all_felipe:
+            out = pd.concat(all_felipe, ignore_index=True)
+            out.to_csv(DATA_PROCESSED / "felipe_peixoto_by_secao.csv", index=False)
+            print(f"Saved felipe_peixoto_by_secao.csv ({len(out)} rows)")
 
-    save_all_niteroi_raw(all_raw)
+        if all_psd:
+            out = pd.concat(all_psd, ignore_index=True)
+            out.to_csv(DATA_PROCESSED / "psd_by_secao.csv", index=False)
+            print(f"Saved psd_by_secao.csv ({len(out)} rows)")
+
+        save_all_niteroi_raw(all_raw)
+
     print("\nDone.")
 
 

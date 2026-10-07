@@ -13,6 +13,10 @@ MUNICIPIO = "NITERÓI"
 HUGO_LEAL = {
     "name": "HUGO LEAL",
     "elections": {
+        # 2026 verified against consulta_cand_2026 (TSE) on 2026-10-07:
+        # NM_CANDIDATO=HUGO LEAL MELO DA SILVA, DS_CARGO=DEPUTADO FEDERAL,
+        # SG_PARTIDO=PSD, NR_CANDIDATO=5510. Script 08 re-checks on every run.
+        2026: {"cargo": "DEPUTADO FEDERAL", "partido": "PSD", "nr": 5510},
         2022: {"cargo": "DEPUTADO FEDERAL", "partido": "PSD", "nr": 5555},
         2018: {"cargo": "DEPUTADO FEDERAL", "partido": "PSD", "nr": 5555},
         2014: {"cargo": "DEPUTADO FEDERAL", "partido": "PROS", "nr": 2055},
@@ -48,7 +52,7 @@ PSD_FOUNDING_YEAR = 2011
 
 TSE_CDN = "https://cdn.tse.jus.br/estatistica/sead/odsele"
 
-FEDERAL_YEARS = [2022, 2018, 2014, 2010]
+FEDERAL_YEARS = [2026, 2022, 2018, 2014, 2010]
 MUNICIPAL_YEARS = [2024, 2020, 2016, 2012]
 ALL_YEARS = sorted(set(FEDERAL_YEARS + MUNICIPAL_YEARS))
 
