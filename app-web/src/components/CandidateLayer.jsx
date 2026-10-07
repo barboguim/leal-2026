@@ -1,5 +1,6 @@
 import { electionType, formatSigned } from '../lib/format';
 import { COLORS } from '../lib/constants';
+import EyeToggle from './EyeToggle.jsx';
 
 export default function CandidateLayer({
   metricKey, label, color, visible, onToggleVisible, count,
@@ -8,14 +9,9 @@ export default function CandidateLayer({
   deltaTotal, pairMeta,
 }) {
   return (
-    <details className="cand">
+    <details className={'cand' + (visible ? '' : ' is-hidden')}>
       <summary className="cand-row">
-        <input
-          type="checkbox"
-          checked={visible}
-          onChange={onToggleVisible}
-          onClick={(e) => e.stopPropagation()}
-        />
+        <EyeToggle visible={visible} onToggle={onToggleVisible} label={label} />
         <span className="layer-dot" style={{ background: color }} />
         <span className="cand-name">{label}</span>
         <span className="layer-count">{count ?? '—'}</span>

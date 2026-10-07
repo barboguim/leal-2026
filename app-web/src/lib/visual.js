@@ -32,3 +32,17 @@ export function getSequentialColor(pct, min = 0, max = 100) {
   const t = max === min ? 0.5 : Math.min(1, Math.max(0, (value - min) / (max - min)));
   return interpolateColor(light, dark, t);
 }
+
+// Hugo-brand purple scale. Light stop is a near-white tint of the brand hue so
+// weak-contribution markers fade into the basemap; dark stop is the full brand
+// purple so Hugo's strongest locais read as the focal points on the map.
+export function getHugoIntensityColor(share, maxShare) {
+  const light = [240, 232, 244];
+  const dark = [139, 74, 156]; // #8B4A9C — Hugo brand purple
+  const value = Number.isFinite(Number(share)) ? Number(share) : 0;
+  const ceiling = Math.max(Number(maxShare) || 0, 0.0001);
+  // Square-root curve: compresses the long tail so even mid-share locais show
+  // a readable hue, instead of all but the brightest fading to the light stop.
+  const t = Math.min(1, Math.sqrt(value / ceiling));
+  return interpolateColor(light, dark, t);
+}

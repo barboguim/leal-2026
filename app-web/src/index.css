@@ -295,3 +295,48 @@ details.cand:not([open]) .cand-row:hover { background: var(--color-surface); }
   #compare-panel { left: 12px; right: 12px; bottom: 12px; transform: none; overflow-x: auto; }
   .control-row-3 { grid-template-columns: 1fr; }
 }
+
+/* --- leal-2026: eye-icon layer toggle + intensity legend --- */
+
+.eye-toggle {
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; padding: 0; margin: -2px;
+  border: 0; background: none; border-radius: 50%;
+  color: var(--color-text-faint); cursor: pointer;
+  transition: color .15s, background .15s;
+}
+.eye-toggle:hover { background: var(--color-border); color: var(--color-text); }
+.eye-toggle svg { width: 14px; height: 14px; display: block; }
+.eye-toggle.is-hidden { opacity: .55; }
+
+details.cand.is-hidden .cand-row .layer-dot,
+details.cand.is-hidden .cand-row .cand-name,
+details.cand.is-hidden .cand-row .layer-count {
+  color: var(--color-text-faint);
+  opacity: .55;
+}
+details.cand.is-hidden .cand-row .layer-dot { background: var(--color-text-faint) !important; }
+
+.intensity-legend {
+  margin: 10px 2px 14px;
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+.intensity-legend-title {
+  margin-bottom: 6px;
+  font-size: 10.5px;
+  text-transform: none;
+  color: var(--color-text-strong);
+  font-weight: 500;
+}
+.intensity-legend-row {
+  display: flex; align-items: center; gap: 8px;
+}
+.intensity-legend-tick {
+  font-variant-numeric: tabular-nums; font-family: var(--font-mono);
+}
+.intensity-scale {
+  height: 6px; flex: 1; border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, #f0e8f4, #8B4A9C);
+}
