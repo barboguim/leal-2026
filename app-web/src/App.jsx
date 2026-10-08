@@ -291,6 +291,15 @@ export default function App() {
           prevYear={prevYear}
           newLocaisCount={newLocaisCount}
           goneLocaisCount={goneLocaisCount}
+          yearTotal={yearTotal}
+          topLocal={(() => {
+            if (!localPoints.length) return null;
+            const top = localPoints.reduce((a, b) =>
+              Number(b.properties.QT_VOTOS || 0) > Number(a.properties.QT_VOTOS || 0) ? b : a
+            );
+            return { nm: top.properties.nm_local || `Local ${top.properties.nr_local}`, votes: Number(top.properties.QT_VOTOS || 0) };
+          })()}
+          avgPerLocal={localPoints.length ? yearTotal / localPoints.length : 0}
         />
 
         <ComparativoLayer
