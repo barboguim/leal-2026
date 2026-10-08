@@ -9,6 +9,7 @@ export default function YearSelectorLayer({
   visible, onToggleVisible,
   years, selectedYear, onYearChange,
   locaisCount, prevYear, newLocaisCount, goneLocaisCount,
+  yearTotal,
 }) {
   const changeParts = [];
   if (prevYear != null) {
@@ -47,6 +48,11 @@ export default function YearSelectorLayer({
             <strong>{locaisCount}</strong> {locaisCount === 1 ? 'local' : 'locais'} com votos de Hugo
             {changeParts.length > 0 && (
               <span className="status-caption-sub"> · desde {prevYear}: {changeParts.join(', ')}</span>
+            )}
+            {Number.isFinite(yearTotal) && yearTotal > 0 && (
+              <div className="status-caption-italic">
+                <em>total de {yearTotal.toLocaleString('pt-BR')} votos em {selectedYear}</em>
+              </div>
             )}
           </div>
         )}

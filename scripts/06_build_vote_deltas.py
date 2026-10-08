@@ -71,6 +71,10 @@ def load_votes_by_secao() -> dict[str, pd.DataFrame]:
         if "NR_LOCAL_VOTACAO" not in df.columns:
             df["NR_LOCAL_VOTACAO"] = ""
         df["nr_local"] = clean_id_series(df["NR_LOCAL_VOTACAO"])
+        df["nr_zona"] = clean_id_series(df["NR_ZONA"]) if "NR_ZONA" in df.columns else ""
+        # Composite identity key: Niteroi's nr_local collides across zonas,
+        # so (zona, nr_local) is the only correct identity. See script 05.
+        df["local_key"] = df["nr_zona"].astype(str) + "-" + df["nr_local"].astype(str)
         df["section_id"] = build_section_id(df)
         votes[key] = df
         print(f"  Loaded {path.name}: {len(df):,} rows")
@@ -78,6 +82,7 @@ def load_votes_by_secao() -> dict[str, pd.DataFrame]:
 
 
 def aggregate_local_votes(votes_by_secao: dict[str, pd.DataFrame]) -> dict[str, dict[tuple[int, str], int]]:
+    """Keyed by (year, local_key) where local_key = f'{zona}-{nr_local}'."""
     lookups = {}
     for key, df in votes_by_secao.items():
         if df.empty:
@@ -85,11 +90,11 @@ def aggregate_local_votes(votes_by_secao: dict[str, pd.DataFrame]) -> dict[str, 
             continue
         grouped = (
             df[df["nr_local"] != ""]
-            .groupby(["ano", "nr_local"], as_index=False)["QT_VOTOS"]
+            .groupby(["ano", "local_key"], as_index=False)["QT_VOTOS"]
             .sum()
         )
         lookups[key] = {
-            (int(row["ano"]), row["nr_local"]): int(row["QT_VOTOS"])
+            (int(row["ano"]), row["local_key"]): int(row["QT_VOTOS"])
             for _, row in grouped.iterrows()
         }
     return lookups
@@ -205,17 +210,29 @@ def add_delta_fields(row: dict, get_votes, lookup: dict) -> None:
 
 
 def section_sets_by_local(roster: pd.DataFrame, year: int) -> dict[str, set[str]]:
-    sub = roster[roster["ano"] == year]
+    """Keyed by local_key (zona-nrlocal composite). Builds it on the fly
+    from the roster's NR_ZONA + nr_local columns."""
+    sub = roster[roster["ano"] == year].copy()
+    sub["local_key"] = sub["NR_ZONA"].astype(str) + "-" + sub["nr_local"].astype(str)
     return {
-        nr_local: set(group["section_id"])
-        for nr_local, group in sub.groupby("nr_local")
-        if nr_local
+        local_key: set(group["section_id"])
+        for local_key, group in sub.groupby("local_key")
+        if local_key and not local_key.startswith("-")
     }
 
 
+def section_local_lookup_composite(roster: pd.DataFrame, year: int) -> dict[str, str]:
+    """section_id -> local_key (zona-nrlocal). Composite replaces the
+    nr_local-only lookup from _pipeline_utils."""
+    sub = roster[roster["ano"] == year].copy()
+    sub["local_key"] = sub["NR_ZONA"].astype(str) + "-" + sub["nr_local"].astype(str)
+    deduped = sub.drop_duplicates(subset=["section_id"])
+    return dict(zip(deduped["section_id"], deduped["local_key"]))
+
+
 def movement_counts(roster: pd.DataFrame, start_year: int, end_year: int) -> tuple[Counter, Counter]:
-    start_lookup = section_local_lookup(roster, start_year)
-    end_lookup = section_local_lookup(roster, end_year)
+    start_lookup = section_local_lookup_composite(roster, start_year)
+    end_lookup = section_local_lookup_composite(roster, end_year)
     moved_in = Counter()
     moved_out = Counter()
     for section_id in set(start_lookup).intersection(end_lookup):
@@ -236,10 +253,10 @@ def section_lineage(
     changed between start_year and end_year are included — continuity is not
     a transfer. Pattern mirrors mobi-pleito-2026's `compute_secao_transfers`
     (same owner, sibling site)."""
-    start_lookup = section_local_lookup(roster, start_year)
-    end_lookup = section_local_lookup(roster, end_year)
+    start_lookup = section_local_lookup_composite(roster, start_year)
+    end_lookup = section_local_lookup_composite(roster, end_year)
 
-    # Build raw per-pair transfer lists: (other_local, section_number) tuples.
+    # Build raw per-pair transfer lists: (other_local_key, section_number).
     received_raw: dict[str, list[tuple[str, str]]] = {}
     sent_raw: dict[str, list[tuple[str, str]]] = {}
     for section_id, before_local in start_lookup.items():
@@ -255,17 +272,20 @@ def section_lineage(
 
     def summarize(transfers: list[tuple[str, str]]) -> list[dict]:
         groups: dict[str, list[str]] = {}
-        for other_local, secao in transfers:
-            groups.setdefault(other_local, []).append(secao)
-        return [
-            {
-                "nr_local": other,
-                "nm_local": name_by_local.get(other, ""),
+        for other_local_key, secao in transfers:
+            groups.setdefault(other_local_key, []).append(secao)
+        result = []
+        for other_key, secs in sorted(groups.items(), key=lambda kv: -len(set(kv[1]))):
+            # other_key = "zona-nrlocal"
+            _zona, _nr = other_key.split("-", 1) if "-" in other_key else ("", other_key)
+            result.append({
+                "nr_zona": _zona,
+                "nr_local": _nr,
+                "nm_local": name_by_local.get(other_key, ""),
                 "count": len(set(secs)),
                 "secoes": sorted(set(secs), key=lambda s: (len(s), s)),
-            }
-            for other, secs in sorted(groups.items(), key=lambda kv: -len(set(kv[1])))
-        ]
+            })
+        return result
 
     received = {local: summarize(items) for local, items in received_raw.items()}
     sent = {local: summarize(items) for local, items in sent_raw.items()}
@@ -283,9 +303,9 @@ def local_churn_rows(
     )
     rows = {}
 
-    for nr_local in sorted(set(start_sets).union(end_sets)):
-        start_sections = start_sets.get(nr_local, set())
-        end_sections = end_sets.get(nr_local, set())
+    for local_key in sorted(set(start_sets).union(end_sets)):
+        start_sections = start_sets.get(local_key, set())
+        end_sections = end_sets.get(local_key, set())
         common = start_sections.intersection(end_sections)
         added = end_sections - start_sections
         removed = start_sections - end_sections
@@ -297,10 +317,12 @@ def local_churn_rows(
         else:
             status = "end_only"
 
-        recebidas = received_lineage.get(nr_local, [])
-        enviadas = sent_lineage.get(nr_local, [])
+        recebidas = received_lineage.get(local_key, [])
+        enviadas = sent_lineage.get(local_key, [])
+        nr_zona, nr_local = local_key.split("-", 1) if "-" in local_key else ("", local_key)
 
-        rows[nr_local] = {
+        rows[local_key] = {
+            "nr_zona": nr_zona,
             "nr_local": nr_local,
             "local_status": status,
             "secoes_inicio": len(start_sections),
@@ -308,11 +330,9 @@ def local_churn_rows(
             "secoes_comuns": len(common),
             "secoes_adicionadas": len(added),
             "secoes_removidas": len(removed),
-            "secoes_movidas_in": int(moved_in[nr_local]),
-            "secoes_movidas_out": int(moved_out[nr_local]),
+            "secoes_movidas_in": int(moved_in[local_key]),
+            "secoes_movidas_out": int(moved_out[local_key]),
             "secao_churn": round((len(added) + len(removed)) / denom, 4),
-            # JSON strings: parsed client-side in DeltaPopupContent to render
-            # "N seções vieram de LOCAL X" / "N seções foram para LOCAL Y"
             "secoes_recebidas": json.dumps(recebidas, ensure_ascii=False) if recebidas else None,
             "secoes_enviadas": json.dumps(enviadas, ensure_ascii=False) if enviadas else None,
         }
@@ -326,7 +346,12 @@ def build_local_delta_frame(
     candidacy: dict,
 ) -> pd.DataFrame:
     vote_lookup = aggregate_local_votes(votes_by_secao)
-    info_lookup = locais.set_index("nr_local").to_dict("index") if not locais.empty else {}
+    # locais now carries nr_zona; key info_lookup by local_key composite.
+    locais = locais.copy()
+    if "nr_zona" not in locais.columns:
+        locais["nr_zona"] = ""
+    locais["local_key"] = locais["nr_zona"].fillna("").astype(str) + "-" + locais["nr_local"].astype(str)
+    info_lookup = locais.set_index("local_key").to_dict("index") if not locais.empty else {}
     name_by_local = {k: v.get("nm_local", "") for k, v in info_lookup.items()}
     rows = []
 
@@ -335,26 +360,28 @@ def build_local_delta_frame(
         churn = local_churn_rows(roster, start_year, end_year, name_by_local)
         local_ids = set(churn)
         for lookup in vote_lookup.values():
-            for year, nr_local in lookup:
+            for year, local_key in lookup:
                 if year in (start_year, end_year):
-                    local_ids.add(nr_local)
+                    local_ids.add(local_key)
 
-        for nr_local in sorted(local_ids):
-            info = info_lookup.get(nr_local, {})
+        for local_key in sorted(local_ids):
+            info = info_lookup.get(local_key, {})
+            nr_zona, nr_local_only = local_key.split("-", 1) if "-" in local_key else ("", local_key)
             row = {
                 "pair": pair,
                 "ano_inicio": start_year,
                 "ano_fim": end_year,
-                "nr_local": nr_local,
+                "nr_zona": nr_zona,
+                "nr_local": nr_local_only,
                 "nm_local": info.get("nm_local"),
                 "bairro": info.get("bairro"),
                 "lat": info.get("lat"),
                 "lon": info.get("lon"),
-                **churn.get(nr_local, {"local_status": "vote_data_only"}),
+                **{k: v for k, v in churn.get(local_key, {"local_status": "vote_data_only"}).items() if k not in ("nr_zona", "nr_local")},
             }
 
-            def get_votes(key: str, year: int) -> int:
-                return vote_lookup[key].get((year, nr_local), 0)
+            def get_votes(key: str, year: int, lk=local_key) -> int:
+                return vote_lookup[key].get((year, lk), 0)
 
             add_delta_fields(row, get_votes, candidacy)
             rows.append(row)
@@ -375,9 +402,14 @@ def build_section_delta_frame(
     candidacy: dict,
 ) -> pd.DataFrame:
     vote_lookup = aggregate_section_votes(votes_by_secao)
-    info_lookup = locais.set_index("nr_local").to_dict("index") if not locais.empty else {}
+    locais = locais.copy()
+    if "nr_zona" not in locais.columns:
+        locais["nr_zona"] = ""
+    locais["local_key"] = locais["nr_zona"].fillna("").astype(str) + "-" + locais["nr_local"].astype(str)
+    info_lookup = locais.set_index("local_key").to_dict("index") if not locais.empty else {}
+    # Use composite roster lookup; falls back to blank for missing sections.
     roster_by_year = {
-        year: section_local_lookup(roster, year)
+        year: section_local_lookup_composite(roster, year)
         for year in sorted(int(y) for y in ALL_YEARS)
     }
     rows = []

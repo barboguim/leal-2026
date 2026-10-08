@@ -8,6 +8,60 @@ function voteShareText(votos, totalValidos) {
   return `${(votos / totalValidos * 100).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 }
 
+// Collapse "1,2,3,5,7,8" -> "1–3, 5, 7–8". Same pattern mobi-pleito-2026
+// uses for its secao ranges.
+function collapseRanges(secoesStrs) {
+  if (!secoesStrs || secoesStrs.length === 0) return '';
+  const nums = secoesStrs
+    .map(s => ({ raw: String(s), n: parseInt(String(s), 10) }))
+    .filter(x => Number.isFinite(x.n))
+    .sort((a, b) => a.n - b.n);
+  if (nums.length === 0) return secoesStrs.join(', ');
+  const parts = [];
+  let runStart = nums[0];
+  let prev = nums[0];
+  for (let i = 1; i < nums.length; i++) {
+    const cur = nums[i];
+    if (cur.n === prev.n + 1) { prev = cur; continue; }
+    parts.push(runStart.raw === prev.raw ? runStart.raw : `${runStart.raw}–${prev.raw}`);
+    runStart = cur; prev = cur;
+  }
+  parts.push(runStart.raw === prev.raw ? runStart.raw : `${runStart.raw}–${prev.raw}`);
+  return parts.join(', ');
+}
+
+function SectionsDetail({ p }) {
+  const detail = Array.isArray(p.secoes_detail) ? p.secoes_detail : [];
+  if (detail.length === 0) {
+    return (
+      <div className="popup-row">
+        <span className="popup-label">Seções</span>
+        <span className="popup-val">{p.n_secoes ?? '—'}</span>
+      </div>
+    );
+  }
+  // Group by zona (defensive: a merged local can span zonas).
+  const byZona = new Map();
+  for (const row of detail) {
+    const z = String(row.zona || '');
+    if (!byZona.has(z)) byZona.set(z, { secoes: [], total: 0 });
+    byZona.get(z).secoes.push(row.secao);
+    byZona.get(z).total += Number(row.votes) || 0;
+  }
+  return (
+    <div className="section-detail">
+      {[...byZona.entries()].map(([z, { secoes, total }]) => (
+        <div key={z} className="section-detail-zona">
+          <div className="section-detail-head">
+            Zona {z || '—'} · {secoes.length} {secoes.length === 1 ? 'seção' : 'seções'} · <strong>{total.toLocaleString('pt-BR')}</strong> votos
+          </div>
+          <div className="section-detail-ranges">Seções {collapseRanges(secoes)}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function PopupContent({ p, layerKey }) {
   const hasCompetitors = Boolean(p.top1_nome);
   const hasProfile = Number.isFinite(Number(p.total_eleitores));
@@ -58,7 +112,7 @@ export default function PopupContent({ p, layerKey }) {
           {hasPerformanceShare && (
             <div className="popup-row"><span className="popup-label">% dos votos válidos</span><span className="popup-val">{voteShareText(p.QT_VOTOS, p.total_votos_validos)}</span></div>
           )}
-          <div className="popup-row"><span className="popup-label">Secoes</span><span className="popup-val">{p.n_secoes ?? '—'}</span></div>
+          <SectionsDetail p={p} />
           {hasCompetitors && <CompetitorSection title="Concorrencia" props={p} />}
           {hasProfile && <ProfileSection props={p} />}
         </>

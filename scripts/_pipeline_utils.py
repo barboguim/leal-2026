@@ -77,7 +77,7 @@ def read_tse_chunks_safe(path: Path, **kwargs):
     raise ValueError(f"Cannot read {path} in chunks") from last_error
 
 
-APP_GEOJSON_LAYERS = ["hugo_leal", "felipe_peixoto", "psd", "vote_deltas", "voter_profile"]
+APP_GEOJSON_LAYERS = ["hugo_leal", "hugo_leal_secao", "felipe_peixoto", "psd", "vote_deltas", "voter_profile"]
 
 
 def rebuild_data_js(data_geo: Path, app_dir: Path, layers: list[str] = APP_GEOJSON_LAYERS) -> None:

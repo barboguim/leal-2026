@@ -100,11 +100,34 @@ export default function App() {
   const localPoints = selectedYear ? yearFeats : aggregateByLocal(yearFeats);
   const yearMax = localPoints.reduce((m, f) => Math.max(m, Number(f.properties.QT_VOTOS || 0)), 0);
   const yearTotal = localPoints.reduce((s, f) => s + Number(f.properties.QT_VOTOS || 0), 0);
+
+  // Per-(year, localKey) seção breakdown from hugo_leal_secao.geojson —
+  // feeds the marker popup's "Zona X · N seções" + collapsed-ranges list.
+  const localKey = (p) => `${p.nr_zona ?? ''}:${p.nr_local}`;
+  const secaoBreakdown = (() => {
+    const m = new Map();
+    const sec = data.hugo_leal_secao;
+    if (!sec) return m;
+    for (const f of sec.features) {
+      const p = f.properties;
+      const key = `${p.ano}|${p.NR_ZONA ?? p.nr_zona ?? ''}:${p.nr_local}`;
+      if (!m.has(key)) m.set(key, []);
+      m.get(key).push({
+        zona: p.NR_ZONA ?? p.nr_zona ?? '',
+        secao: p.NR_SECAO ?? '',
+        votes: Number(p.QT_VOTOS) || 0,
+      });
+    }
+    return m;
+  })();
+
   const featuresWithShare = localPoints.map(f => {
     const votos = Number(f.properties.QT_VOTOS || 0);
     const intensity_pct = yearMax > 0 ? (votos / yearMax) * 100 : 0;
     const share_pct = yearTotal > 0 ? (votos / yearTotal) * 100 : 0;
-    return { ...f, properties: { ...f.properties, share_pct, intensity_pct } };
+    const key = `${selectedYear}|${localKey(f.properties)}`;
+    const secoes_detail = secaoBreakdown.get(key) || [];
+    return { ...f, properties: { ...f.properties, share_pct, intensity_pct, secoes_detail } };
   });
   const breaks = [20, 40, 60, 80];
 
@@ -113,7 +136,6 @@ export default function App() {
   // full roster of polling places and the Hugo-free ones read as 'quiet'.
   // Coord taken from the first year the local appeared in (coords are static
   // in locais_votacao_niteroi.csv; same across cycles for a given local).
-  const localKey = (p) => `${p.nr_zona ?? ''}:${p.nr_local}`;
   const allKnownLocais = useMemo(() => {
     const m = new Map();
     for (const f of hugoFC.features) {
