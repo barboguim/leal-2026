@@ -300,6 +300,33 @@ export default function App() {
             return { nm: top.properties.nm_local || `Local ${top.properties.nr_local}`, votes: Number(top.properties.QT_VOTOS || 0) };
           })()}
           avgPerLocal={localPoints.length ? yearTotal / localPoints.length : 0}
+          topBairros={(() => {
+            const m = new Map();
+            for (const f of localPoints) {
+              const b = f.properties.bairro || '—';
+              m.set(b, (m.get(b) || 0) + Number(f.properties.QT_VOTOS || 0));
+            }
+            return [...m.entries()]
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 3)
+              .map(([name, votes]) => ({ name, votes }));
+          })()}
+          zonaStats={(() => {
+            const m = new Map();
+            for (const f of localPoints) {
+              const z = f.properties.nr_zona || '—';
+              m.set(z, (m.get(z) || 0) + Number(f.properties.QT_VOTOS || 0));
+            }
+            return [...m.entries()]
+              .sort((a, b) => b[1] - a[1])
+              .map(([zona, votes]) => ({ zona, votes }));
+          })()}
+          prevYearTotal={(() => {
+            if (!prevYear) return null;
+            return hugoFC.features
+              .filter(f => f.properties.ano === prevYear)
+              .reduce((s, f) => s + Number(f.properties.QT_VOTOS || 0), 0);
+          })()}
         />
 
         <ComparativoLayer
