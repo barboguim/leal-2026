@@ -121,13 +121,46 @@ export default function App() {
     return m;
   })();
 
+  // Per-(year, localKey) section lineage from vote_deltas — the lineage is
+  // naturally keyed by pair ano_inicio-ano_fim, so stamp it under year=ano_fim
+  // (that year inherited the sections). Lets the Ano a ano popup show the
+  // same "Veio de X" / "Saíram para Y" story the Comparativo popup shows.
+  const lineageByYearLocal = (() => {
+    const m = new Map();
+    const vd = data.vote_deltas;
+    if (!vd) return m;
+    for (const f of vd.features) {
+      const p = f.properties;
+      if (!p.secoes_recebidas && !p.secoes_enviadas) continue;
+      const key = `${p.ano_fim}|${p.nr_zona ?? ''}:${p.nr_local}`;
+      m.set(key, {
+        prevYear: p.ano_inicio,
+        secoes_recebidas: p.secoes_recebidas,
+        secoes_enviadas: p.secoes_enviadas,
+      });
+    }
+    return m;
+  })();
+
   const featuresWithShare = localPoints.map(f => {
     const votos = Number(f.properties.QT_VOTOS || 0);
     const intensity_pct = yearMax > 0 ? (votos / yearMax) * 100 : 0;
     const share_pct = yearTotal > 0 ? (votos / yearTotal) * 100 : 0;
     const key = `${selectedYear}|${localKey(f.properties)}`;
     const secoes_detail = secaoBreakdown.get(key) || [];
-    return { ...f, properties: { ...f.properties, share_pct, intensity_pct, secoes_detail } };
+    const lineage = lineageByYearLocal.get(key) || {};
+    return {
+      ...f,
+      properties: {
+        ...f.properties,
+        share_pct,
+        intensity_pct,
+        secoes_detail,
+        secoes_recebidas: lineage.secoes_recebidas,
+        secoes_enviadas: lineage.secoes_enviadas,
+        lineage_prev_year: lineage.prevYear,
+      },
+    };
   });
   const breaks = [20, 40, 60, 80];
 
