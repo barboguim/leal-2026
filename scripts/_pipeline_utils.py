@@ -142,11 +142,14 @@ def load_local_info(data_geo: Path) -> pd.DataFrame:
 
     locais = pd.read_csv(path, dtype=str)
     locais["nr_local"] = clean_id_series(locais["nr_local"])
+    if "nr_zona" in locais.columns:
+        locais["nr_zona"] = clean_id_series(locais["nr_zona"])
     for col in ("lat", "lon"):
         locais[col] = pd.to_numeric(locais[col], errors="coerce")
 
-    keep = [c for c in ("nr_local", "nm_local", "bairro", "lat", "lon") if c in locais.columns]
-    locais = locais[keep].drop_duplicates(subset=["nr_local"]).reset_index(drop=True)
+    keep = [c for c in ("nr_zona", "nr_local", "nm_local", "bairro", "lat", "lon") if c in locais.columns]
+    dedup_cols = ["nr_zona", "nr_local"] if "nr_zona" in locais.columns else ["nr_local"]
+    locais = locais[keep].drop_duplicates(subset=dedup_cols).reset_index(drop=True)
     print(f"  Loaded locais_votacao_niteroi.csv: {len(locais):,} locais")
     return locais
 
