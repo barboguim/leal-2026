@@ -590,3 +590,29 @@ details.group.is-hidden .group-row .group-count { color: var(--color-text-faint)
   color: var(--color-text-muted);
   font-family: var(--font-mono);
 }
+
+/* Votos por seção collapsible list inside the marker popup */
+.section-votes-detail { margin-top: 4px; }
+.section-votes-detail summary {
+  cursor: pointer;
+  font-size: 10.5px;
+  color: var(--color-text-muted);
+  padding: 2px 0;
+}
+.section-votes-list {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+  max-height: 180px;
+  overflow-y: auto;
+  border-left: 2px solid var(--color-border);
+}
+.section-votes-list li {
+  display: flex; justify-content: space-between;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+.section-votes-list li:nth-child(odd) { background: var(--color-surface); }
+.section-votes-secao { color: var(--color-text-muted); }
+.section-votes-count { color: var(--color-text); font-variant-numeric: tabular-nums; }

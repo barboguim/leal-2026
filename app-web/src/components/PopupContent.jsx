@@ -40,24 +40,41 @@ function SectionsDetail({ p }) {
       </div>
     );
   }
-  // Group by zona (defensive: a merged local can span zonas).
+  // Group by zona (defensive: a merged local can span zonas). Each row:
+  // {zona, secao, votes}. We render the top-level ranges summary + a
+  // collapsible per-seção vote list ordered by votes desc.
   const byZona = new Map();
   for (const row of detail) {
     const z = String(row.zona || '');
-    if (!byZona.has(z)) byZona.set(z, { secoes: [], total: 0 });
-    byZona.get(z).secoes.push(row.secao);
+    if (!byZona.has(z)) byZona.set(z, { rows: [], total: 0 });
+    byZona.get(z).rows.push(row);
     byZona.get(z).total += Number(row.votes) || 0;
   }
   return (
     <div className="section-detail">
-      {[...byZona.entries()].map(([z, { secoes, total }]) => (
-        <div key={z} className="section-detail-zona">
-          <div className="section-detail-head">
-            Zona {z || '—'} · {secoes.length} {secoes.length === 1 ? 'seção' : 'seções'} · <strong>{total.toLocaleString('pt-BR')}</strong> votos
+      {[...byZona.entries()].map(([z, { rows, total }]) => {
+        const secoes = rows.map(r => r.secao);
+        const sortedByVotes = [...rows].sort((a, b) => (b.votes || 0) - (a.votes || 0));
+        return (
+          <div key={z} className="section-detail-zona">
+            <div className="section-detail-head">
+              Zona {z || '—'} · {rows.length} {rows.length === 1 ? 'seção' : 'seções'} · <strong>{total.toLocaleString('pt-BR')}</strong> votos
+            </div>
+            <div className="section-detail-ranges">Seções {collapseRanges(secoes)}</div>
+            <details className="section-votes-detail">
+              <summary>Votos por seção</summary>
+              <ul className="section-votes-list">
+                {sortedByVotes.map(r => (
+                  <li key={r.secao}>
+                    <span className="section-votes-secao">Seção {r.secao}</span>
+                    <span className="section-votes-count">{(r.votes || 0).toLocaleString('pt-BR')}</span>
+                  </li>
+                ))}
+              </ul>
+            </details>
           </div>
-          <div className="section-detail-ranges">Seções {collapseRanges(secoes)}</div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

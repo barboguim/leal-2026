@@ -9,7 +9,7 @@ export default function YearSelectorLayer({
   visible, onToggleVisible,
   years, selectedYear, onYearChange,
   locaisCount, prevYear, newLocaisCount, goneLocaisCount,
-  yearTotal,
+  yearTotal, topLocal, avgPerLocal,
 }) {
   const changeParts = [];
   if (prevYear != null) {
@@ -51,7 +51,15 @@ export default function YearSelectorLayer({
             )}
             {Number.isFinite(yearTotal) && yearTotal > 0 && (
               <div className="status-caption-italic">
-                <em>total de {yearTotal.toLocaleString('pt-BR')} votos em {selectedYear}</em>
+                <em>
+                  total {yearTotal.toLocaleString('pt-BR')} votos
+                  {Number.isFinite(avgPerLocal) && avgPerLocal > 0 && (
+                    <> · média {avgPerLocal.toFixed(1)} por local</>
+                  )}
+                  {topLocal && (
+                    <> · top: <strong>{topLocal.nm}</strong> ({topLocal.votes.toLocaleString('pt-BR')})</>
+                  )}
+                </em>
               </div>
             )}
           </div>
