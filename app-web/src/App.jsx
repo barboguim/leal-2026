@@ -141,11 +141,23 @@ export default function App() {
     return m;
   })();
 
+  // On mobile the sidebar panel competes with the popup for screen area —
+  // auto-collapse when the user clicks a marker (or a lineage link) so the
+  // popup has room. Desktop keeps the panel open regardless.
+  const isMobile = () =>
+    typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
+
+  const handleMarkerSelect = (props, coords) => {
+    setCompareSelection({ props, coords });
+    if (isMobile()) setPanelCollapsed(true);
+  };
+
   const focusLocal = (zona, nr_local) => {
     const key = `${zona ?? ''}:${nr_local}`;
     const f = locaisLookup.get(key);
     if (!f) return;
     setCompareSelection({ props: f.properties, coords: f.geometry.coordinates });
+    if (isMobile()) setPanelCollapsed(true);
   };
 
   // Per-(year, localKey) section lineage from vote_deltas — the lineage is
@@ -276,7 +288,7 @@ export default function App() {
             layerKey={HUGO}
             features={allMarkerFeatures}
             breaks={breaks}
-            onSelect={(p, coords) => setCompareSelection({ props: p, coords })}
+            onSelect={handleMarkerSelect}
             onLineageClick={focusLocal}
           />
         )}
