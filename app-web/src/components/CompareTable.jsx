@@ -4,11 +4,20 @@ export default function CompareTable({ selection, data }) {
   if (!selection) return null;
   const { props: clickedProps } = selection;
   const localId = clickedProps.nr_local;
+  const zonaId = String(clickedProps.nr_zona ?? '');
 
   const rows = BASE_KEYS.map(key => {
     const fc = data[key];
     if (!fc) return null;
-    const localFeats = fc.features.filter(f => f.properties.nr_local === localId);
+    // Composite (zona, nr_local) match — nr_local alone collides across
+    // Niterói zonas (e.g. nr_local 1600 is CIEP 251 in zona 144 AND
+    // Instituto Ismael Coutinho in zona 71). Without this, byYear was
+    // being overwritten by whichever building came last in the feature
+    // array, showing a different local's votes in the footer table.
+    const localFeats = fc.features.filter(f =>
+      f.properties.nr_local === localId &&
+      String(f.properties.nr_zona ?? '') === zonaId
+    );
     if (localFeats.length === 0) return null;
     const byYear = {};
     localFeats.forEach(f => { byYear[f.properties.ano] = f.properties.QT_VOTOS; });
