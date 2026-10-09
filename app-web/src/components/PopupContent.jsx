@@ -54,7 +54,14 @@ function SectionsDetail({ p }) {
     <div className="section-detail">
       {[...byZona.entries()].map(([z, { rows, total }]) => {
         const secoes = rows.map(r => r.secao);
-        const sortedByVotes = [...rows].sort((a, b) => (b.votes || 0) - (a.votes || 0));
+        // Numeric order by seção number — applies to every local, regardless
+        // of votes. Easier to scan when the viewer knows the number they're
+        // looking for.
+        const sortedBySecao = [...rows].sort((a, b) => {
+          const na = parseInt(String(a.secao), 10);
+          const nb = parseInt(String(b.secao), 10);
+          return (Number.isFinite(na) ? na : 0) - (Number.isFinite(nb) ? nb : 0);
+        });
         return (
           <div key={z} className="section-detail-zona">
             <div className="section-detail-head">
@@ -64,7 +71,7 @@ function SectionsDetail({ p }) {
             <details className="section-votes-detail">
               <summary>Votos por seção</summary>
               <ul className="section-votes-list">
-                {sortedByVotes.map(r => (
+                {sortedBySecao.map(r => (
                   <li key={r.secao}>
                     <span className="section-votes-secao">Seção {r.secao}</span>
                     <span className="section-votes-count">{(r.votes || 0).toLocaleString('pt-BR')}</span>
