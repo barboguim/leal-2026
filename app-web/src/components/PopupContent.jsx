@@ -71,15 +71,16 @@ function SectionsDetail({ p }) {
             <details
               className="section-votes-detail"
               onToggle={(e) => {
-                // When the <details> expands, nudge Leaflet to recalculate the
-                // popup position so it stays centered within the viewport.
-                // The event fires after the DOM reflow so we can read the
-                // marker element and ask its popup to re-adjust.
+                // On mobile, when the <details> expands the popup can grow
+                // upward into the top panel. Scroll the popup content so the
+                // summary stays visible instead, and the newly revealed list
+                // appears right below it.
                 if (!e.currentTarget.open) return;
-                const popup = e.currentTarget.closest('.leaflet-popup');
-                if (popup && popup._leaflet_pos && typeof window !== 'undefined') {
-                  // Dispatch a resize-like signal so Leaflet knows to pan.
-                  window.dispatchEvent(new Event('resize'));
+                const summary = e.currentTarget.querySelector('summary');
+                if (summary && typeof summary.scrollIntoView === 'function') {
+                  requestAnimationFrame(() => {
+                    summary.scrollIntoView({ block: 'start', behavior: 'smooth' });
+                  });
                 }
               }}
             >

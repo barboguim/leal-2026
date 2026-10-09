@@ -330,22 +330,23 @@ details.cand:not([open]) .cand-row:hover { background: var(--color-surface); }
   #panel h1 { font-size: 16px; }
   .group-row { min-height: 40px; }
 
-  /* Compact compare-panel (foot window) on mobile — small and well off
-     the edges so it doesn't crowd the map. */
+  /* Compact compare-panel (foot window) on mobile — reader-friendly fonts
+     from the previous iteration, but tighter padding and inset off the
+     edges so the window itself is small while the text stays legible. */
   #compare-panel {
-    left: 20px; right: 20px; bottom: 20px;
+    left: 24px; right: 24px; bottom: 24px;
     transform: none;
     overflow-x: auto;
-    padding: 4px 8px;
-    font-size: 9px;
+    padding: 6px 10px;
+    font-size: 11.5px;
     border-radius: 8px;
-    max-width: calc(100vw - 40px);
+    max-width: calc(100vw - 48px);
   }
-  #compare-panel table { font-size: 8.5px; }
-  #compare-panel td { padding: 1px 3px !important; }
+  #compare-panel table { font-size: 11px; }
+  #compare-panel td { padding: 1px 5px !important; }
   #compare-panel > div:first-child {
-    font-size: 10px !important;
-    margin-bottom: 2px !important;
+    font-size: 12px !important;
+    margin-bottom: 3px !important;
   }
   .control-row-3 { grid-template-columns: 1fr; }
 }
@@ -745,7 +746,9 @@ details.group.is-hidden .group-row .group-count { color: var(--color-text-faint)
   .section-block-title { font-size: 10px; }
   .section-detail-ranges { font-size: 9.5px; }
   .section-votes-detail summary { font-size: 9.5px; }
-  .section-votes-list { max-height: 110px; }
+  /* Lower list cap on mobile so expanding <details> doesn't push the
+     popup past the viewport. The inner list scrolls when it exceeds. */
+  .section-votes-list { max-height: 80px; }
   .section-votes-list li { font-size: 9.5px; padding: 1px 4px; }
   .lineage-group { margin-top: 5px; }
   .lineage-title { font-size: 10px; }
