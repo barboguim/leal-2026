@@ -68,7 +68,21 @@ function SectionsDetail({ p }) {
               Zona {z || '—'} · {rows.length} {rows.length === 1 ? 'seção' : 'seções'} · <strong>{total.toLocaleString('pt-BR')}</strong> votos
             </div>
             <div className="section-detail-ranges">Seções {collapseRanges(secoes)}</div>
-            <details className="section-votes-detail">
+            <details
+              className="section-votes-detail"
+              onToggle={(e) => {
+                // When the <details> expands, nudge Leaflet to recalculate the
+                // popup position so it stays centered within the viewport.
+                // The event fires after the DOM reflow so we can read the
+                // marker element and ask its popup to re-adjust.
+                if (!e.currentTarget.open) return;
+                const popup = e.currentTarget.closest('.leaflet-popup');
+                if (popup && popup._leaflet_pos && typeof window !== 'undefined') {
+                  // Dispatch a resize-like signal so Leaflet knows to pan.
+                  window.dispatchEvent(new Event('resize'));
+                }
+              }}
+            >
               <summary>Votos por seção</summary>
               <ul className="section-votes-list">
                 {sortedBySecao.map(r => (

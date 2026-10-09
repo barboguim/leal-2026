@@ -330,19 +330,21 @@ details.cand:not([open]) .cand-row:hover { background: var(--color-surface); }
   #panel h1 { font-size: 16px; }
   .group-row { min-height: 40px; }
 
-  /* Compact compare-panel (foot window) on mobile — much smaller. */
+  /* Compact compare-panel (foot window) on mobile — small and well off
+     the edges so it doesn't crowd the map. */
   #compare-panel {
-    left: 8px; right: 8px; bottom: 8px;
+    left: 20px; right: 20px; bottom: 20px;
     transform: none;
     overflow-x: auto;
-    padding: 5px 9px;
-    font-size: 10px;
+    padding: 4px 8px;
+    font-size: 9px;
     border-radius: 8px;
+    max-width: calc(100vw - 40px);
   }
-  #compare-panel table { font-size: 9.5px; }
-  #compare-panel td { padding: 1px 4px !important; }
+  #compare-panel table { font-size: 8.5px; }
+  #compare-panel td { padding: 1px 3px !important; }
   #compare-panel > div:first-child {
-    font-size: 11px !important;
+    font-size: 10px !important;
     margin-bottom: 2px !important;
   }
   .control-row-3 { grid-template-columns: 1fr; }
@@ -713,18 +715,18 @@ details.group.is-hidden .group-row .group-count { color: var(--color-text-faint)
 }
 
 /* Mobile popup compaction — tighter spacing, smaller type, and a bounded
-   max-height so the popup scrolls instead of being cut off by the panel
-   when it opens on a short viewport. */
+   max-height so the popup scrolls (inside) instead of growing off-screen
+   when a <details> block (Votos por seção, Perfil, Concorrencia) expands. */
 @media (max-width: 640px) {
   .leaflet-popup-content-wrapper {
-    max-height: 60vh;
-    overflow: hidden;
+    max-height: 55vh !important;
+    overflow: hidden !important;
   }
   .leaflet-popup-content {
     min-width: 200px !important;
     max-width: 72vw !important;
-    max-height: calc(60vh - 24px);
-    overflow-y: auto;
+    max-height: calc(55vh - 24px) !important;
+    overflow-y: auto !important;
     margin: 8px 10px !important;
     font-size: 11px !important;
     line-height: 1.35 !important;
