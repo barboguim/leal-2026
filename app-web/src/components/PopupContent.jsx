@@ -1,3 +1,4 @@
+import { useMap } from 'react-leaflet';
 import CompetitorSection from './CompetitorSection';
 import ProfileSection from './ProfileSection';
 import { COLORS, LABELS } from '../lib/constants';
@@ -31,6 +32,9 @@ function collapseRanges(secoesStrs) {
 }
 
 function SectionsDetail({ p }) {
+  // Leaflet map instance — used in onToggle to re-pan the open popup so its
+  // top stays visible even after a <details> block grows its height.
+  const map = useMap();
   const detail = Array.isArray(p.secoes_detail) ? p.secoes_detail : [];
   if (detail.length === 0) {
     return (
@@ -71,17 +75,17 @@ function SectionsDetail({ p }) {
             <details
               className="section-votes-detail"
               onToggle={(e) => {
-                // On mobile, when the <details> expands the popup can grow
-                // upward into the top panel. Scroll the popup content so the
-                // summary stays visible instead, and the newly revealed list
-                // appears right below it.
                 if (!e.currentTarget.open) return;
-                const summary = e.currentTarget.querySelector('summary');
-                if (summary && typeof summary.scrollIntoView === 'function') {
-                  requestAnimationFrame(() => {
-                    summary.scrollIntoView({ block: 'start', behavior: 'smooth' });
-                  });
-                }
+                // After the DOM reflow, ask the open Leaflet popup to re-pan
+                // so its top stays inside the viewport. _adjustPan is the
+                // same routine Leaflet calls on popup open; triggering it
+                // here handles the post-open growth.
+                requestAnimationFrame(() => {
+                  const popup = map && map._popup;
+                  if (popup && typeof popup._adjustPan === 'function') {
+                    popup._adjustPan();
+                  }
+                });
               }}
             >
               <summary>Votos por seção</summary>
