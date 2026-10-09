@@ -20,6 +20,13 @@ function candidateSummary(inicio, fim, delta, status, cargoDiferente) {
   return `${inicio} -> ${fim} (${formatSigned(delta)})${cargoNote}`;
 }
 
+function sameName(a, b) {
+  const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim().toUpperCase();
+  const na = norm(a);
+  const nb = norm(b);
+  return na.length > 0 && na === nb;
+}
+
 // Human-readable section status for the local across the two years.
 // local_status comes from scripts/06_build_vote_deltas.py and is one of:
 // 'both' / 'start_only' / 'end_only' / 'vote_data_only'.
@@ -90,8 +97,9 @@ function SectionsBlock({ p }) {
   const novas = Number(p.secoes_adicionadas) || 0;
   const removidas = Number(p.secoes_removidas) || 0;
 
-  const recebidas = parseLineage(p.secoes_recebidas);
-  const enviadas = parseLineage(p.secoes_enviadas);
+  const currentName = p.nm_local;
+  const recebidas = parseLineage(p.secoes_recebidas).filter(it => !sameName(it.nm_local, currentName));
+  const enviadas = parseLineage(p.secoes_enviadas).filter(it => !sameName(it.nm_local, currentName));
 
   return (
     <div className="section-block">
