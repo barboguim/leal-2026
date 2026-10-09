@@ -121,6 +121,33 @@ export default function App() {
     return m;
   })();
 
+  // Look up any (zona, nr_local)'s feature so a lineage click can open the
+  // source/destination local's foot window. Uses hugo_leal (local-grain) as
+  // primary, hugo_leal_secao's first match as fallback for historic locals
+  // that aren't in 2026.
+  const locaisLookup = (() => {
+    const m = new Map();
+    for (const f of hugoFC.features) {
+      const k = `${f.properties.nr_zona ?? ''}:${f.properties.nr_local}`;
+      if (!m.has(k)) m.set(k, f);
+    }
+    const sec = data.hugo_leal_secao;
+    if (sec) {
+      for (const f of sec.features) {
+        const k = `${f.properties.nr_zona ?? f.properties.NR_ZONA ?? ''}:${f.properties.nr_local}`;
+        if (!m.has(k)) m.set(k, f);
+      }
+    }
+    return m;
+  })();
+
+  const focusLocal = (zona, nr_local) => {
+    const key = `${zona ?? ''}:${nr_local}`;
+    const f = locaisLookup.get(key);
+    if (!f) return;
+    setCompareSelection({ props: f.properties, coords: f.geometry.coordinates });
+  };
+
   // Per-(year, localKey) section lineage from vote_deltas — the lineage is
   // naturally keyed by pair ano_inicio-ano_fim, so stamp it under year=ano_fim
   // (that year inherited the sections). Lets the Ano a ano popup show the
@@ -250,6 +277,7 @@ export default function App() {
             features={allMarkerFeatures}
             breaks={breaks}
             onSelect={(p, coords) => setCompareSelection({ props: p, coords })}
+            onLineageClick={focusLocal}
           />
         )}
         {showCompare && selectedPair && (

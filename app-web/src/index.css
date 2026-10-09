@@ -744,3 +744,12 @@ details.group.is-hidden .group-row .group-count { color: var(--color-text-faint)
   .lineage-count { font-size: 11px; }
   .lineage-detail { font-size: 9.5px; }
 }
+
+.lineage-link {
+  background: none; border: 0; padding: 0; margin: 0;
+  color: var(--color-text-strong); font: inherit; font-weight: 500;
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+.lineage-link:hover { color: var(--color-text); }

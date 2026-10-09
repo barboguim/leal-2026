@@ -91,23 +91,35 @@ function parseLineage(json) {
   try { return JSON.parse(json); } catch { return []; }
 }
 
-function LineageBlock({ p }) {
+function LineageBlock({ p, onLineageClick }) {
   const recebidas = parseLineage(p.secoes_recebidas);
   const enviadas = parseLineage(p.secoes_enviadas);
   if (recebidas.length === 0 && enviadas.length === 0) return null;
   const prevYear = p.lineage_prev_year;
-  const line = (dir) => (item) => (
-    <li key={`${dir}-${item.nr_zona}-${item.nr_local}`}>
-      <div className="lineage-count">
-        {dir === 'in' ? 'Veio de' : 'Saiu para'}{' '}
-        <span className="lineage-local">{item.nm_local || `Local ${item.nr_local}`}</span>{' '}
-        <span className="lineage-arrow">·</span> {item.count} {item.count === 1 ? 'seção' : 'seções'}
-      </div>
-      {item.secoes && item.secoes.length > 0 && (
-        <div className="lineage-detail">seções {collapseRanges(item.secoes)}</div>
-      )}
-    </li>
-  );
+  const line = (dir) => (item) => {
+    const label = item.nm_local || `Local ${item.nr_local}`;
+    const clickable = typeof onLineageClick === 'function';
+    const nameEl = clickable
+      ? (
+        <button
+          type="button"
+          className="lineage-link"
+          onClick={(e) => { e.stopPropagation(); onLineageClick(item.nr_zona, item.nr_local); }}
+        >{label}</button>
+      )
+      : <span className="lineage-local">{label}</span>;
+    return (
+      <li key={`${dir}-${item.nr_zona}-${item.nr_local}`}>
+        <div className="lineage-count">
+          {dir === 'in' ? 'Veio de' : 'Saiu para'} {nameEl}{' '}
+          <span className="lineage-arrow">·</span> {item.count} {item.count === 1 ? 'seção' : 'seções'}
+        </div>
+        {item.secoes && item.secoes.length > 0 && (
+          <div className="lineage-detail">seções {collapseRanges(item.secoes)}</div>
+        )}
+      </li>
+    );
+  };
   return (
     <div className="lineage-group">
       <div className="lineage-title">Mudanças de seções{prevYear ? ` desde ${prevYear}` : ''}</div>
@@ -119,7 +131,7 @@ function LineageBlock({ p }) {
   );
 }
 
-export default function PopupContent({ p, layerKey }) {
+export default function PopupContent({ p, layerKey, onLineageClick }) {
   const hasCompetitors = Boolean(p.top1_nome);
   const hasProfile = Number.isFinite(Number(p.total_eleitores));
   const hasPerformanceShare = Number.isFinite(Number(p.total_votos_validos));
@@ -170,7 +182,7 @@ export default function PopupContent({ p, layerKey }) {
             <div className="popup-row"><span className="popup-label">% dos votos válidos</span><span className="popup-val">{voteShareText(p.QT_VOTOS, p.total_votos_validos)}</span></div>
           )}
           <SectionsDetail p={p} />
-          <LineageBlock p={p} />
+          <LineageBlock p={p} onLineageClick={onLineageClick} />
           {hasCompetitors && <CompetitorSection title="Concorrencia" props={p} />}
           {hasProfile && <ProfileSection props={p} />}
         </>

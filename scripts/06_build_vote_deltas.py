@@ -339,6 +339,41 @@ def local_churn_rows(
     return rows
 
 
+def load_historical_names() -> dict[str, str]:
+    """Scan every year's raw votacao_secao for (zona, nr_local, nm_local)
+    triples in Niterói and return a dict keyed by local_key. Needed because
+    locais_votacao_niteroi.csv only has 2026 (+ a handful of legacy rows),
+    so lineage items like 'Veio de Local 1546' lose the name when the
+    source local existed in 2022 but was decommissioned by 2026."""
+    import csv as _csv
+    from unidecode import unidecode as _ud
+    norm = lambda s: _ud(str(s)).upper().strip()
+    names: dict[str, str] = {}
+    for year in sorted(ALL_YEARS):
+        folder = DATA_RAW / f"votacao_secao_{year}"
+        csvs = sorted(folder.glob("*.csv"))
+        if not csvs:
+            continue
+        try:
+            header = pd.read_csv(csvs[0], sep=";", encoding="latin-1", dtype=str, nrows=0)
+        except Exception:
+            continue
+        if "NM_LOCAL_VOTACAO" not in header.columns:
+            continue
+        want = [c for c in ("NM_MUNICIPIO", "NR_ZONA", "NR_LOCAL_VOTACAO", "NM_LOCAL_VOTACAO") if c in header.columns]
+        for chunk in pd.read_csv(csvs[0], sep=";", encoding="latin-1", dtype=str,
+                                 usecols=want, chunksize=200_000, low_memory=False):
+            mask = chunk["NM_MUNICIPIO"].apply(lambda x: norm(x) == norm(MUNICIPIO))
+            sub = chunk.loc[mask, ["NR_ZONA", "NR_LOCAL_VOTACAO", "NM_LOCAL_VOTACAO"]].dropna()
+            for _, r in sub.drop_duplicates(["NR_ZONA", "NR_LOCAL_VOTACAO"]).iterrows():
+                k = f"{str(r['NR_ZONA']).strip()}-{str(r['NR_LOCAL_VOTACAO']).strip()}"
+                nm = str(r["NM_LOCAL_VOTACAO"]).strip()
+                # Newer-year wins (we loop years ascending, so always overwrite)
+                if nm and nm.lower() != "nan":
+                    names[k] = nm
+    return names
+
+
 def build_local_delta_frame(
     votes_by_secao: dict[str, pd.DataFrame],
     roster: pd.DataFrame,
@@ -353,6 +388,12 @@ def build_local_delta_frame(
     locais["local_key"] = locais["nr_zona"].fillna("").astype(str) + "-" + locais["nr_local"].astype(str)
     info_lookup = locais.set_index("local_key").to_dict("index") if not locais.empty else {}
     name_by_local = {k: v.get("nm_local", "") for k, v in info_lookup.items()}
+    # Fill in historical names for locais that aren't in the 2026 TSE csv
+    print("Scanning raw TSE for historical local names ...")
+    hist_names = load_historical_names()
+    for k, nm in hist_names.items():
+        if not name_by_local.get(k):
+            name_by_local[k] = nm
     rows = []
 
     for start_year, end_year in all_candidate_pairs(candidacy):

@@ -7,7 +7,7 @@ import { getHeatColor } from '../lib/visual';
 // the full set of polling places and the Hugo-free ones read as 'quiet'.
 const MARKER_RADIUS = 6;
 
-export default function MarkerLayer({ layerKey, features, breaks, onSelect }) {
+export default function MarkerLayer({ layerKey, features, breaks, onSelect, onLineageClick }) {
   const useIntensity = layerKey === 'hugo_leal' && Array.isArray(breaks) && breaks.length > 0;
   return (
     <>
@@ -40,7 +40,7 @@ export default function MarkerLayer({ layerKey, features, breaks, onSelect }) {
             }}
           >
             <Popup>
-              <PopupContent p={p} layerKey={layerKey} />
+              <PopupContent p={p} layerKey={layerKey} onLineageClick={onLineageClick} />
             </Popup>
           </CircleMarker>
         );
