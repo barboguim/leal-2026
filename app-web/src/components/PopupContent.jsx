@@ -91,9 +91,23 @@ function parseLineage(json) {
   try { return JSON.parse(json); } catch { return []; }
 }
 
+function sameName(a, b) {
+  const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim().toUpperCase();
+  const na = norm(a);
+  const nb = norm(b);
+  return na.length > 0 && na === nb;
+}
+
 function LineageBlock({ p, onLineageClick }) {
-  const recebidas = parseLineage(p.secoes_recebidas);
-  const enviadas = parseLineage(p.secoes_enviadas);
+  const currentName = p.nm_local;
+  const recebidasRaw = parseLineage(p.secoes_recebidas);
+  const enviadasRaw = parseLineage(p.secoes_enviadas);
+  // Drop entries where the "other" local has the same name as this one —
+  // that's not a lineage event, it's the same building with a renumbered
+  // nr_local. Showing it as "Veio de HILARIO" when the current local IS
+  // HILARIO is misleading (mobi-pleito-2026 doesn't do that).
+  const recebidas = recebidasRaw.filter(item => !sameName(item.nm_local, currentName));
+  const enviadas = enviadasRaw.filter(item => !sameName(item.nm_local, currentName));
   if (recebidas.length === 0 && enviadas.length === 0) return null;
   const prevYear = p.lineage_prev_year;
   const line = (dir) => (item) => {
