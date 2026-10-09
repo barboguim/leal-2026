@@ -135,6 +135,12 @@ def main() -> None:
     print(f"\nWrote {out_path.name}: {len(features)} features ({nonzero} with votes, {zero_added} zero-vote), dropped {dropped} unmatched")
     print(f"Years: {years}")
 
+    # Also refresh the app bundle so the UI picks up the full roster. Without
+    # this, data.js stays at the previous script's snapshot and the popup
+    # shows an outdated seção list.
+    from _pipeline_utils import APP_GEOJSON_LAYERS, rebuild_data_js
+    rebuild_data_js(DATA_GEO, DATA_GEO.parent.parent / "app", APP_GEOJSON_LAYERS)
+
 
 if __name__ == "__main__":
     main()
