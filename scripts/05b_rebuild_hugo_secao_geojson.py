@@ -92,7 +92,7 @@ def main() -> None:
     dropped = 0
     zero_added = 0
 
-    for year in sorted(set(ALL_YEARS) & set(votes["ano"].unique())):
+    for year in sorted(int(y) for y in (set(ALL_YEARS) & set(votes["ano"].unique()))):
         print(f"  Loading roster {year} ...")
         roster = load_year_roster(year)
         if roster.empty:
@@ -104,7 +104,7 @@ def main() -> None:
 
         for t in roster_tuples:
             yr, zona, nr_local, secao = t
-            qt = hugo_lookup.get(t, 0)
+            qt = int(hugo_lookup.get(t, 0))
             if qt == 0:
                 zero_added += 1
             c = primary.get((zona, nr_local)) or legacy.get(nr_local)
@@ -114,13 +114,13 @@ def main() -> None:
             features.append({
                 "type": "Feature",
                 "properties": {
-                    "ano": yr,
-                    "NR_ZONA": zona,
-                    "nr_zona": zona,
-                    "NR_SECAO": secao,
+                    "ano": int(yr),
+                    "NR_ZONA": str(zona),
+                    "nr_zona": str(zona),
+                    "NR_SECAO": str(secao),
                     "QT_VOTOS": qt,
                     "label": "HUGO LEAL",
-                    "nr_local": nr_local,
+                    "nr_local": str(nr_local),
                     "nm_local": c.get("nm_local"),
                     "bairro": c.get("bairro"),
                 },
